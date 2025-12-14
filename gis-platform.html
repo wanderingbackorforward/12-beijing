@@ -799,15 +799,22 @@
             tileGroup.clear();
             mapGroup.visible = true;
 
-            STATE.currentAdcode = adcode;
+            STATE.currentAdcode = String(adcode);
             ui.backBtn.style.display = adcode === 100000 ? 'none' : 'block';
 
             const tempGroup = new THREE.Group();
-            geoJson.features.forEach(feature => {
+            let features = geoJson.features || [];
+            if (STATE.currentAdcode === '100000') {
+                features = features.filter(f => {
+                    const ac = String((f.properties && f.properties.adcode) || '');
+                    return /^[0-9]{6}$/.test(ac) && ac.endsWith('0000');
+                });
+            }
+            features.forEach(feature => {
                 const geometry = feature.geometry;
                 if (!geometry) return;
                 const coordinates = geometry.coordinates;
-                const func = (coords) => createRegionMesh(coords, feature.properties.name, feature.properties.adcode, tempGroup);
+                const func = (coords) => createRegionMesh(coords, feature.properties.name, String(feature.properties.adcode), tempGroup);
                 if (geometry.type === 'Polygon') coordinates.forEach(func);
                 else if (geometry.type === 'MultiPolygon') coordinates.forEach(mc => mc.forEach(func));
             });
@@ -854,7 +861,7 @@
             line.position.z = 0.01;
             mesh.add(line);
 
-            mesh.userData = { name: name, adcode: adcode, isRegion: true };
+            mesh.userData = { name: name, adcode: String(adcode), isRegion: true };
             parentGroup.add(mesh);
         }
 
@@ -1104,9 +1111,13 @@
                 let hit = mapHits.find(obj => obj.object.userData.isRegion);
                 if (hit) {
                     const data = hit.object.userData;
-                    if (STATE.currentAdcode === 100000 || STATE.currentAdcode === 320000) {
+                    const adc = String(data.adcode || '');
+                    if (!adc) return;
+                    const currentIsNational = String(STATE.currentAdcode) === '100000';
+                    const currentIsProvince = /^[0-9]{6}$/.test(String(STATE.currentAdcode)) && String(STATE.currentAdcode).endsWith('0000');
+                    if (currentIsNational || currentIsProvince) {
                         STATE.history.push({ adcode: STATE.currentAdcode });
-                        loadMapData(data.adcode, data.name);
+                        loadMapData(adc, data.name);
                     }
                 }
             }
