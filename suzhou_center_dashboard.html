@@ -928,6 +928,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initMap();
+            showCards();
             setTimeout(() => {
                 const rect = container.getBoundingClientRect();
                 if (rect && rect.width > 0) updatePosition(rect.left + rect.width * 0.15);
