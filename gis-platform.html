@@ -382,7 +382,7 @@
             color: #00ff88;
             cursor: pointer;
             z-index: 50;
-            display: block;
+            display: none;
             font-weight: bold;
             box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
             text-transform: uppercase;
@@ -864,9 +864,9 @@
                 const geometry = feature.geometry;
                 if (!geometry) return;
                 const coordinates = geometry.coordinates;
-                const func = (coords) => createRegionMesh(coords, feature.properties.name, String(feature.properties.adcode), tempGroup);
-                if (geometry.type === 'Polygon') coordinates.forEach(func);
-                else if (geometry.type === 'MultiPolygon') coordinates.forEach(mc => mc.forEach(func));
+                const func = (rings) => createRegionMesh(rings, feature.properties.name, String(feature.properties.adcode), tempGroup);
+                if (geometry.type === 'Polygon') func(coordinates);
+                else if (geometry.type === 'MultiPolygon') coordinates.forEach(func);
             });
 
             const box = new THREE.Box3().setFromObject(tempGroup);
@@ -893,14 +893,27 @@
             ui.loading.style.display = 'none';
         }
 
-        function createRegionMesh(points, name, adcode, parentGroup) {
+        function createRegionMesh(rings, name, adcode, parentGroup) {
+            if (!Array.isArray(rings) || rings.length === 0) return;
+            const toXY = (pt) => {
+                const [lng, lat] = pt;
+                return { x: lng * CONFIG.mapScale, y: lat * CONFIG.mapScale };
+            };
+            const outer = rings[0];
             const shape = new THREE.Shape();
-            points.forEach((p, i) => {
-                const [lng, lat] = p;
-                const x = lng * CONFIG.mapScale;
-                const y = lat * CONFIG.mapScale;
+            outer.forEach((p, i) => {
+                const { x, y } = toXY(p);
                 if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
             });
+            for (let h = 1; h < rings.length; h++) {
+                const holeRing = rings[h];
+                const path = new THREE.Path();
+                holeRing.forEach((p, i) => {
+                    const { x, y } = toXY(p);
+                    if (i === 0) path.moveTo(x, y); else path.lineTo(x, y);
+                });
+                shape.holes.push(path);
+            }
 
             const extrudeSettings = { depth: 0.6, bevelEnabled: false };
             const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
@@ -958,12 +971,19 @@
             ui.card.style.display = 'none';
             ui.gisTag.style.display = 'block';
             ui.backBtn.style.display = 'block';
-            ui.gisVisitBtn.style.display = 'block';
+            const allowMonitor = new Set(['p2','p4']);
+            ui.gisVisitBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
+            const monitorBtn = document.getElementById('monitor-btn');
+            if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
             ui.loading.style.display = 'block';
             ui.loadingText.innerText = "正在获取高清卫星影像...";
             TILE.source = 'osm';
             if (window.__osmAttrib) window.__osmAttrib.style.display = 'block';
 
+            if (STATE.hoveredObj) {
+                new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                STATE.hoveredObj = null;
+            }
             new TWEEN.Tween(mapGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
             new TWEEN.Tween(markersGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
 
@@ -1154,6 +1174,8 @@
             new TWEEN.Tween(mapGroup.scale).to({ x: 1, y: 1, z: 1 }, 500).start();
             markersGroup.visible = true;
             new TWEEN.Tween(markersGroup.scale).to({ x: 1, y: 1, z: 1 }, 500).start();
+            const monitorBtn = document.getElementById('monitor-btn');
+            if (monitorBtn) monitorBtn.style.display = 'none';
         }
 
         function onPointerDown(event) {
