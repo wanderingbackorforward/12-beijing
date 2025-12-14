@@ -967,9 +967,13 @@
             new TWEEN.Tween(mapGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
             new TWEEN.Tween(markersGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
 
-            renderer.toneMappingExposure = 1.0;
-            bloomPass.strength = 0.8;
-            new TWEEN.Tween(globalAmbientLight).to({ intensity: 0.9 }, 1000).start();
+            renderer.toneMappingExposure = 0.8;
+            bloomPass.strength = 0.35;
+            bloomPass.threshold = 0.5;
+            bloomPass.radius = 0.25;
+            matTop.emissiveIntensity = 0.6;
+            matHover.emissiveIntensity = 0.8;
+            new TWEEN.Tween(globalAmbientLight).to({ intensity: 0.6 }, 1000).start();
             new TWEEN.Tween(scene.fog).to({ density: 0.0005 }, 1000).start();
 
             setTimeout(() => {
@@ -1000,7 +1004,7 @@
 
                     const mesh = new THREE.Mesh(
                         new THREE.PlaneGeometry(tileSize, tileSize),
-                        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 })
+                        new THREE.MeshBasicMaterial({ color: 0x777777, transparent: true, opacity: 0 })
                     );
                     mesh.rotation.x = -Math.PI / 2;
                     mesh.position.set(x * tileSize, 0, y * tileSize);
@@ -1011,7 +1015,7 @@
                             tex.colorSpace = THREE.SRGBColorSpace;
                             mesh.material.map = tex;
                             mesh.material.needsUpdate = true;
-                            new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                            new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
                             tilesLoaded++;
                             if (tilesLoaded === 1) ui.loading.style.display = 'none';
                         },
@@ -1025,7 +1029,7 @@
                                         tex2.colorSpace = THREE.SRGBColorSpace;
                                         mesh.material.map = tex2;
                                         mesh.material.needsUpdate = true;
-                                        new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
                                         tilesLoaded++;
                                         if (tilesLoaded === 1) ui.loading.style.display = 'none';
                                     },
@@ -1034,14 +1038,14 @@
                                         const errTex = createErrorTileTexture();
                                         mesh.material.map = errTex;
                                         mesh.material.needsUpdate = true;
-                                        new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
                                     }
                                 );
                             } else {
                                 const errTex = createErrorTileTexture();
                                 mesh.material.map = errTex;
                                 mesh.material.needsUpdate = true;
-                                new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                                new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
                             }
                         }
                     );
@@ -1049,33 +1053,7 @@
                 }
             }
 
-            createProceduralCity(range, tileSize);
-
-            const centerBuild = new THREE.Group();
-            const mainTower = new THREE.Mesh(
-                new THREE.BoxGeometry(6, 18, 6),
-                new THREE.MeshPhysicalMaterial({
-                    color: 0x00ccff,
-                    metalness: 0.9, roughness: 0.1,
-                    transparent: true, opacity: 0.8,
-                    emissive: 0x004488, emissiveIntensity: 0.2
-                })
-            );
-            mainTower.position.y = 9;
-            centerBuild.add(mainTower);
-
-            const marker = new THREE.Mesh(
-                new THREE.ConeGeometry(2, 4, 4),
-                new THREE.MeshBasicMaterial({ color: 0xffaa00, wireframe: true })
-            );
-            marker.position.y = 22;
-            marker.rotation.x = Math.PI;
-            centerBuild.add(marker);
-
-            new TWEEN.Tween(marker.position).to({ y: 24 }, 1000).yoyo(true).repeat(Infinity).start();
-            new TWEEN.Tween(marker.rotation).to({ y: Math.PI * 2 }, 3000).repeat(Infinity).start();
-
-            tileGroup.add(centerBuild);
+            // remove procedural city pillars and center tower in GIS mode
             createRadarEffect();
 
             animateCamera(new THREE.Vector3(0, 40, 50), new THREE.Vector3(0, 5, 0));
@@ -1165,6 +1143,10 @@
 
             renderer.toneMappingExposure = 1.3;
             bloomPass.strength = CONFIG.bloomStrength;
+            bloomPass.threshold = 0.2;
+            bloomPass.radius = CONFIG.bloomRadius;
+            matTop.emissiveIntensity = 1.0;
+            matHover.emissiveIntensity = 1.5;
             new TWEEN.Tween(globalAmbientLight).to({ intensity: 0.6 }, 800).start();
             new TWEEN.Tween(scene.fog).to({ density: 0.0015 }, 800).start();
 
