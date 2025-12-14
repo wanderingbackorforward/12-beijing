@@ -995,9 +995,10 @@
                 ring.rotation.x = -Math.PI / 2;
                 g.add(ring);
 
-                new TWEEN.Tween(cone.position).to({ y: 1.5 }, 1000).yoyo(true).repeat(Infinity).start();
-                new TWEEN.Tween(ring.scale).to({ x: 3, y: 3 }, 1500).repeat(Infinity).start();
-                new TWEEN.Tween(ring.material).to({ opacity: 0 }, 1500).repeat(Infinity).start();
+                // new TWEEN.Tween(cone.position).to({ y: 1.5 }, 1000).yoyo(true).repeat(Infinity).start();
+                // new TWEEN.Tween(ring.scale).to({ x: 3, y: 3 }, 1500).repeat(Infinity).start();
+                // new TWEEN.Tween(ring.material).to({ opacity: 0 }, 1500).repeat(Infinity).start();
+                ring.scale.set(1.5, 1.5, 1.5);
 
                 g.userData = { isMarker: true, data: proj };
                 markersGroup.add(g);
