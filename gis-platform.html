@@ -1117,7 +1117,7 @@
             }
 
             // remove procedural city pillars and center tower in GIS mode
-            createRadarEffect();
+            createFocusMarker();
 
             animateCamera(new THREE.Vector3(0, 40, 50), new THREE.Vector3(0, 5, 0));
             setTimeout(() => {
@@ -1182,18 +1182,31 @@
             tileGroup.add(edgeGroup);
         }
 
-        function createRadarEffect() {
-            const geometry = new THREE.RingGeometry(0.5, 1, 64);
-            const material = new THREE.MeshBasicMaterial({
-                color: 0x00ffaa,
-                transparent: true,
-                opacity: 0.5,
-                side: THREE.DoubleSide
-            });
-            radarMesh = new THREE.Mesh(geometry, material);
-            radarMesh.rotation.x = -Math.PI / 2;
-            radarMesh.position.y = 0.2;
-            tileGroup.add(radarMesh);
+        function createFocusMarker() {
+            const ringGeo = new THREE.RingGeometry(1.8, 2.0, 64);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.1;
+            tileGroup.add(ring);
+
+            const size = 1.0;
+            const crossGeo = new THREE.BufferGeometry();
+            const vertices = new Float32Array([ -size, 0, 0,  size, 0, 0,  0, 0, -size,  0, 0, size ]);
+            crossGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            const crossMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
+            const cross = new THREE.LineSegments(crossGeo, crossMat);
+            cross.position.y = 0.15;
+            tileGroup.add(cross);
+
+            const coneGeo = new THREE.ConeGeometry(0.5, 2, 4);
+            const coneMat = new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x0055aa, flatShading: true, transparent: true, opacity: 0.9 });
+            const cone = new THREE.Mesh(coneGeo, coneMat);
+            cone.position.y = 4;
+            cone.rotation.x = Math.PI;
+            tileGroup.add(cone);
+
+            radarMesh = cone;
         }
 
         function exitGISMode() {
@@ -1354,9 +1367,9 @@
             controls.update();
 
             if (STATE.viewMode === 'GIS' && radarMesh) {
-                const s = (time / 2000) % 1;
-                radarMesh.scale.set(s * 50, s * 50, 1);
-                radarMesh.material.opacity = 0.5 * (1 - s);
+                const t = time / 1000;
+                radarMesh.position.y = 4 + Math.sin(t * 3) * 0.5;
+                radarMesh.rotation.y = t;
             }
 
             composer.render();
