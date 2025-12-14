@@ -934,6 +934,28 @@
             const range = 2;
             const tileSize = 20;
             const textureLoader = new THREE.TextureLoader();
+            let tilesExpected = 0;
+            let tilesLoaded = 0;
+            let tilesFailed = 0;
+
+            function createErrorTileTexture() {
+                const size = 256;
+                const canvas = document.createElement('canvas');
+                canvas.width = size; canvas.height = size;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(0, 0, size, size);
+                ctx.strokeStyle = 'rgba(0,255,255,0.06)';
+                ctx.lineWidth = 1;
+                const step = 32;
+                for (let i = 0; i <= size; i += step) {
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+                }
+                const tex = new THREE.CanvasTexture(canvas);
+                tex.colorSpace = THREE.SRGBColorSpace;
+                return tex;
+            }
 
             for (let x = -range; x <= range; x++) {
                 for (let y = -range; y <= range; y++) {
@@ -947,7 +969,7 @@
                     );
                     mesh.rotation.x = -Math.PI / 2;
                     mesh.position.set(x * tileSize, 0, y * tileSize);
-
+                    tilesExpected++;
                     textureLoader.load(
                         url,
                         (tex) => {
@@ -955,6 +977,10 @@
                             mesh.material.map = tex;
                             mesh.material.needsUpdate = true;
                             new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                            tilesLoaded++;
+                            if (tilesLoaded === 1) {
+                                ui.loading.style.display = 'none';
+                            }
                         },
                         undefined,
                         () => {
@@ -967,8 +993,26 @@
                                         mesh.material.map = tex2;
                                         mesh.material.needsUpdate = true;
                                         new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                                        tilesLoaded++;
+                                        if (tilesLoaded === 1) {
+                                            ui.loading.style.display = 'none';
+                                        }
+                                    },
+                                    undefined,
+                                    () => {
+                                        const errTex = createErrorTileTexture();
+                                        mesh.material.map = errTex;
+                                        mesh.material.needsUpdate = true;
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 300).start();
+                                        tilesFailed++;
                                     }
                                 );
+                            } else {
+                                const errTex = createErrorTileTexture();
+                                mesh.material.map = errTex;
+                                mesh.material.needsUpdate = true;
+                                new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 300).start();
+                                tilesFailed++;
                             }
                         }
                     );
@@ -1006,7 +1050,12 @@
             createRadarEffect();
 
             animateCamera(new THREE.Vector3(0, 40, 50), new THREE.Vector3(0, 5, 0));
-            ui.loading.style.display = 'none';
+            setTimeout(() => {
+                if (tilesLoaded === 0) {
+                    ui.loadingText.innerText = "高清影像加载失败，请稍后再试。";
+                    setTimeout(() => { ui.loading.style.display = 'none'; }, 1200);
+                }
+            }, 5000);
         }
 
         function createProceduralCity(range, tileSize) {
