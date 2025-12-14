@@ -435,6 +435,160 @@
             right: 10px !important;
             width: auto !important;
         }
+
+        /* ---- Responsive Media Queries ---- */
+        @media (max-width: 1024px) {
+            #header {
+                padding: 0 20px;
+                height: 70px;
+            }
+            .header-title {
+                font-size: 24px;
+            }
+            #left-panel {
+                width: 280px;
+                padding: 15px;
+            }
+            #quick-nav-panel {
+                width: 280px;
+                top: 350px;
+            }
+            #project-card {
+                width: 300px;
+                right: 20px;
+            }
+            #back-btn, #gis-visit-btn, #monitor-btn {
+                right: 20px;
+                padding: 8px 18px;
+                font-size: 13px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            #header {
+                padding: 0 15px;
+                height: 60px;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 5px;
+            }
+            .header-title {
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+            .header-info {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+            .time-display {
+                font-size: 14px;
+            }
+            .header-info > div:last-child {
+                font-size: 10px;
+            }
+
+            /* Left panels stacked at bottom */
+            #left-panel {
+                display: none; /* Hide on mobile to reduce clutter */
+            }
+            #quick-nav-panel {
+                position: fixed;
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100% !important;
+                max-height: 35vh;
+                overflow-y: auto;
+                padding: 15px;
+                border-radius: 16px 16px 0 0;
+                z-index: 100;
+            }
+            .quick-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+            .panel-title {
+                font-size: 16px;
+            }
+
+            /* Project card - full width at center */
+            #project-card {
+                position: fixed;
+                top: 50%;
+                left: 10px !important;
+                right: 10px !important;
+                width: auto !important;
+                transform: translateY(-50%);
+                max-height: 70vh;
+                overflow-y: auto;
+                clip-path: none;
+                border-radius: 12px;
+            }
+
+            /* Buttons repositioned */
+            #back-btn {
+                top: 70px;
+                right: 10px;
+                left: auto;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            #gis-visit-btn {
+                top: 110px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            #monitor-btn {
+                top: 150px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+
+            /* GIS tag */
+            #gis-tag {
+                bottom: 40vh;
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+
+            /* Tooltip */
+            #tooltip {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 14px;
+            }
+            #quick-nav-panel {
+                max-height: 40vh;
+                padding: 12px;
+            }
+            .quick-btn {
+                padding: 10px;
+                font-size: 13px;
+            }
+            #project-card {
+                max-height: 60vh;
+            }
+            .card-header h3 {
+                font-size: 15px;
+            }
+            .info-content {
+                font-size: 14px;
+            }
+            #enter-site-btn, #visit-site-btn {
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
         </style>
 </head>
 

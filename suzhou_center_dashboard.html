@@ -544,27 +544,172 @@
             box-shadow: 0 0 20px #00ff88;
         }
 
-        @media (max-width: 768px) {
+        /* ---- Tablet adjustments ---- */
+        @media (max-width: 1024px) {
+            #dashboard-card {
+                width: 280px;
+                padding: 18px;
+            }
 
+            #env-card {
+                width: 260px;
+                padding: 18px;
+            }
+
+            .logo-main {
+                font-size: 1.8rem;
+            }
+        }
+
+        /* ---- Mobile phone adjustments ---- */
+        @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+            }
+
+            #app-container {
+                height: auto;
+                min-height: 100vh;
+            }
+
+            /* Navigation buttons */
+            .nav-buttons {
+                top: 10px;
+                gap: 6px;
+                width: calc(100% - 20px);
+                left: 10px;
+                transform: none;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .nav-btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+
+            /* Control center */
+            #control-center {
+                top: 55px;
+                right: 10px;
+            }
+
+            .control-trigger {
+                width: 36px;
+                height: 36px;
+            }
+
+            .control-panel-content {
+                width: 180px;
+                padding: 12px;
+            }
+
+            /* Logo */
+            .logo-overlay {
+                top: 55px;
+                left: 12px;
+            }
+
+            .logo-main {
+                font-size: 1.1rem;
+                letter-spacing: 1px;
+            }
+
+            .logo-overlay .text-sm {
+                font-size: 10px !important;
+                margin-top: 4px !important;
+            }
+
+            /* Info cards - slide from bottom */
             #dashboard-card,
             #env-card {
                 position: fixed;
                 top: auto;
-                bottom: 0;
-                width: 100%;
-                left: 0;
-                transform: translateY(110%);
+                left: 0 !important;
+                right: 0 !important;
+                width: 100% !important;
+                border-radius: 16px 16px 0 0;
+                transform: translateY(110%) !important;
+                padding: 16px;
             }
 
             #dashboard-card.active {
-                transform: translateY(0);
-                bottom: 220px;
+                transform: translateY(0) !important;
+                bottom: 210px;
+                max-height: 40vh;
+                overflow-y: auto;
             }
 
             #env-card.active {
-                transform: translateY(0);
+                transform: translateY(0) !important;
                 bottom: 0;
-                height: 210px;
+                height: auto;
+                max-height: 35vh;
+                overflow-y: auto;
+            }
+
+            .card-title {
+                font-size: 0.8rem;
+                padding-bottom: 8px;
+                margin-bottom: 12px;
+            }
+
+            /* Top section */
+            #top-section {
+                flex: none;
+                height: 35vh;
+                min-height: 200px;
+            }
+
+            /* Profile section */
+            #profile-section {
+                flex: none;
+                height: 25vh;
+                min-height: 150px;
+            }
+
+            /* Profile line & cursor */
+            #profile-line {
+                width: 2px;
+            }
+
+            #cursor-tooltip {
+                font-size: 10px;
+                padding: 4px 10px;
+            }
+
+            /* Marker pin */
+            .marker-pin {
+                width: 18px;
+                height: 18px;
+            }
+
+            .marker-pin::after {
+                width: 6px;
+                height: 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav-btn {
+                padding: 5px 10px;
+                font-size: 10px;
+            }
+
+            .logo-main {
+                font-size: 0.95rem;
+            }
+
+            #dashboard-card.active {
+                max-height: 35vh;
+            }
+
+            #env-card.active {
+                max-height: 30vh;
+            }
+
+            .grid.grid-cols-2 {
+                grid-template-columns: 1fr;
             }
         }
     </style>
