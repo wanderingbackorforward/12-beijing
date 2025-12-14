@@ -834,7 +834,7 @@
             ui.loadingText.innerText = `正在加载矢量数据：${regionName}...`;
             const url = getLocalGeoJSONUrl(adcode);
             try {
-                const res = await fetch(url, { cache: "force-cache" });
+                const res = await fetch(url, { cache: "no-store" });
                 if (!res.ok) throw new Error("GeoJSON not found");
                 const geoJson = await res.json();
                 setTimeout(() => { renderVectorMap(geoJson, adcode, regionName); }, 100);
