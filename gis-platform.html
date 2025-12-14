@@ -863,10 +863,18 @@
             features.forEach(feature => {
                 const geometry = feature.geometry;
                 if (!geometry) return;
-                const coordinates = geometry.coordinates;
-                const func = (rings) => createRegionMesh(rings, feature.properties.name, String(feature.properties.adcode), tempGroup);
-                if (geometry.type === 'Polygon') func(coordinates);
-                else if (geometry.type === 'MultiPolygon') coordinates.forEach(func);
+                const func = (rings) => createRegionMesh(rings, feature.properties?.name, String(feature.properties?.adcode), tempGroup);
+                if (geometry.type === 'Polygon') {
+                    func(geometry.coordinates);
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(func);
+                } else if (geometry.type === 'GeometryCollection' && Array.isArray(geometry.geometries)) {
+                    geometry.geometries.forEach(g => {
+                        if (!g) return;
+                        if (g.type === 'Polygon') func(g.coordinates);
+                        else if (g.type === 'MultiPolygon') g.coordinates.forEach(func);
+                    });
+                }
             });
 
             const box = new THREE.Box3().setFromObject(tempGroup);
@@ -1185,6 +1193,11 @@
 
             const markerHits = raycaster.intersectObjects(markersGroup.children, true);
             if (markerHits.length > 0) {
+                if (STATE.hoveredObj) {
+                    STATE.hoveredObj.material = matTop;
+                    new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                    STATE.hoveredObj = null;
+                }
                 let target = markerHits[0].object;
                 while (target.parent && target.parent !== markersGroup) target = target.parent;
                 if (target.userData.isMarker) openProjectCard(target.userData.data);
