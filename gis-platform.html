@@ -575,6 +575,7 @@
         let tileGroup = new THREE.Group();
         let radarMesh;
         let bloomPass;
+        let hoverReleaseTimer = null;
 
         let matBase, matTop, matLine, matHover, matMarker;
 
@@ -586,8 +587,10 @@
             backBtn: document.getElementById('back-btn'),
             gisVisitBtn: document.getElementById('gis-visit-btn'),
             gisTag: document.getElementById('gis-tag'),
-            quickButtons: document.getElementById('quick-buttons-container')
+            quickButtons: document.getElementById('quick-buttons-container'),
+            headerTitle: document.querySelector('.header-title')
         };
+        const DEFAULT_TITLE = '城市大型基础设施暗挖建造云平台';
 
         window.goBack = goBack;
         window.closeProjectCard = closeProjectCard;
@@ -987,6 +990,7 @@
             ui.loadingText.innerText = "正在获取高清卫星影像...";
             TILE.source = 'osm';
             if (window.__osmAttrib) window.__osmAttrib.style.display = 'block';
+            if (ui.headerTitle && proj && proj.name) ui.headerTitle.innerText = proj.name;
 
             if (STATE.hoveredObj) {
                 new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
@@ -1184,6 +1188,7 @@
             new TWEEN.Tween(markersGroup.scale).to({ x: 1, y: 1, z: 1 }, 500).start();
             const monitorBtn = document.getElementById('monitor-btn');
             if (monitorBtn) monitorBtn.style.display = 'none';
+            if (ui.headerTitle) ui.headerTitle.innerText = DEFAULT_TITLE;
         }
 
         function onPointerDown(event) {
@@ -1241,10 +1246,11 @@
             }
 
             if (hitRegion) {
+                if (hoverReleaseTimer) { clearTimeout(hoverReleaseTimer); hoverReleaseTimer = null; }
                 if (STATE.hoveredObj !== hitRegion) {
                     if (STATE.hoveredObj) {
                         STATE.hoveredObj.material = matTop;
-                        new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).start();
+                        new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
                     }
                     STATE.hoveredObj = hitRegion;
                     hitRegion.material = matHover;
@@ -1261,6 +1267,16 @@
                     STATE.hoveredObj.material = matTop;
                     new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
                     STATE.hoveredObj = null;
+                }
+                if (!hoverReleaseTimer) {
+                    hoverReleaseTimer = setTimeout(() => {
+                        if (STATE.hoveredObj) {
+                            STATE.hoveredObj.material = matTop;
+                            new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 150).easing(TWEEN.Easing.Cubic.Out).start();
+                            STATE.hoveredObj = null;
+                        }
+                        hoverReleaseTimer = null;
+                    }, 500);
                 }
                 ui.tooltip.style.display = 'none';
                 document.body.style.cursor = 'default';
