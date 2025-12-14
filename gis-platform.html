@@ -511,6 +511,20 @@
             bloomRadius: 0.4
         };
 
+        const NET = {
+            useProxy: true,
+            proxyBound: (adcode) => `/_proxy/bound/${adcode}`,
+            directBound: (adcode) => `https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`,
+            proxyTile: (x, y, z) => `/_proxy/gaode?style=6&x=${x}&y=${y}&z=${z}`,
+            directTile: (x, y, z) => `https://webst01.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`
+        };
+        function getBoundURL(adcode) {
+            return NET.useProxy ? NET.proxyBound(adcode) : NET.directBound(adcode);
+        }
+        function getTileURL(x, y, z) {
+            return NET.useProxy ? NET.proxyTile(x, y, z) : NET.directTile(x, y, z);
+        }
+
         const PROJECTS = [
             { id: 'p1', name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
             { id: 'p2', name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
@@ -771,25 +785,29 @@
         async function loadMapData(adcode, regionName) {
             if (STATE.isDrilling) return;
             STATE.isDrilling = true;
-
             ui.card.style.display = 'none';
             exitGISMode();
-
             ui.loading.style.display = 'block';
             ui.loadingText.innerText = `正在加载矢量数据：${regionName}...`;
-
-            const url = `https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`;
-
+            let triedFallback = false;
+            let url = getBoundURL(adcode);
             try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error("Fetch failed");
+                const res = await fetch(url, { cache: "force-cache" });
+                if (!res.ok) throw new Error(res.status);
                 const geoJson = await res.json();
-
-                setTimeout(() => {
-                    renderVectorMap(geoJson, adcode, regionName);
-                }, 100);
+                setTimeout(() => renderVectorMap(geoJson, adcode, regionName), 100);
             } catch (err) {
-                console.error(err);
+                if (NET.useProxy && !triedFallback) {
+                    triedFallback = true;
+                    NET.useProxy = false;
+                    try {
+                        const res2 = await fetch(getBoundURL(adcode), { cache: "force-cache" });
+                        if (!res2.ok) throw new Error(res2.status);
+                        const geoJson2 = await res2.json();
+                        setTimeout(() => renderVectorMap(geoJson2, adcode, regionName), 100);
+                        return;
+                    } catch (_) {}
+                }
                 ui.loadingText.innerText = "数据访问失败";
                 STATE.isDrilling = false;
                 setTimeout(() => { ui.loading.style.display = 'none'; }, 1000);
@@ -935,7 +953,7 @@
                 for (let y = -range; y <= range; y++) {
                     const tileX = centerTileX + x;
                     const tileY = centerTileY + y;
-                    const url = `https://webst01.is.autonavi.com/appmaptile?style=6&x=${tileX}&y=${tileY}&z=${zoom}`;
+                    let url = getTileURL(tileX, tileY, zoom);
 
                     const mesh = new THREE.Mesh(
                         new THREE.PlaneGeometry(tileSize, tileSize),
@@ -944,12 +962,30 @@
                     mesh.rotation.x = -Math.PI / 2;
                     mesh.position.set(x * tileSize, 0, y * tileSize);
 
-                    textureLoader.load(url, (tex) => {
-                        tex.colorSpace = THREE.SRGBColorSpace;
-                        mesh.material.map = tex;
-                        mesh.material.needsUpdate = true;
-                        new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
-                    });
+                    textureLoader.load(
+                        url,
+                        (tex) => {
+                            tex.colorSpace = THREE.SRGBColorSpace;
+                            mesh.material.map = tex;
+                            mesh.material.needsUpdate = true;
+                            new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                        },
+                        undefined,
+                        () => {
+                            if (NET.useProxy) {
+                                NET.useProxy = false;
+                                textureLoader.load(
+                                    getTileURL(tileX, tileY, zoom),
+                                    (tex2) => {
+                                        tex2.colorSpace = THREE.SRGBColorSpace;
+                                        mesh.material.map = tex2;
+                                        mesh.material.needsUpdate = true;
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 1 }, 500).delay(Math.random() * 300).start();
+                                    }
+                                );
+                            }
+                        }
+                    );
                     tileGroup.add(mesh);
                 }
             }
