@@ -1,4 +1,53 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "江苏省", "adcode": 320000 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [119.0, 31.0],
+            [121.0, 31.0],
+            [121.0, 33.0],
+            [119.0, 33.0],
+            [119.0, 31.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "浙江省", "adcode": 330000 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [119.0, 28.0],
+            [121.5, 28.0],
+            [121.5, 30.8],
+            [119.0, 30.8],
+            [119.0, 28.0]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "广东省", "adcode": 440000 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [112.5, 21.0],
+            [115.5, 21.0],
+            [115.5, 23.5],
+            [112.5, 23.5],
+            [112.5, 21.0]
+          ]
+        ]
+      }
+    }
+  ]
 }

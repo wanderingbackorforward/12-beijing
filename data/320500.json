@@ -1,4 +1,21 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "苏州市", "adcode": 320500 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [120.4, 31.1],
+            [121.0, 31.1],
+            [121.0, 31.5],
+            [120.4, 31.5],
+            [120.4, 31.1]
+          ]
+        ]
+      }
+    }
+  ]
 }

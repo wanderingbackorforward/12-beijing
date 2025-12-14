@@ -1,4 +1,21 @@
 {
   "type": "FeatureCollection",
-  "features": []
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "温州市", "adcode": 330300 },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [120.4, 27.6],
+            [120.9, 27.6],
+            [120.9, 28.2],
+            [120.4, 28.2],
+            [120.4, 27.6]
+          ]
+        ]
+      }
+    }
+  ]
 }
