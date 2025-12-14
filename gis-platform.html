@@ -883,7 +883,7 @@
             while (tempGroup.children.length > 0) mapGroup.add(tempGroup.children[0]);
             mapGroup.rotation.x = -Math.PI / 2;
 
-            renderMarkers(center, adcode);
+            renderMarkers(center, STATE.currentAdcode);
 
             const maxDim = Math.max(size.x, size.y);
             const dist = maxDim * 1.1;
@@ -916,10 +916,11 @@
         }
 
         function renderMarkers(mapCenterOffset, currentAdcode) {
+            const cur = String(currentAdcode);
             PROJECTS.forEach(proj => {
-                let isVisible = (currentAdcode === 100000) ||
-                    (currentAdcode === proj.provinceCode) ||
-                    (currentAdcode === proj.cityCode);
+                const prov = String(proj.provinceCode);
+                const city = String(proj.cityCode);
+                let isVisible = (cur === '100000') || (cur === prov) || (cur === city);
                 if (!isVisible) return;
 
                 const x = proj.lng * CONFIG.mapScale - mapCenterOffset.x;
@@ -1230,7 +1231,7 @@
                     }
                     STATE.hoveredObj = hitRegion;
                     hitRegion.material = matHover;
-                    new TWEEN.Tween(hitRegion.position).to({ z: 1.5 }, 300).easing(TWEEN.Easing.Back.Out).start();
+                    new TWEEN.Tween(hitRegion.position).to({ z: 0.8 }, 250).easing(TWEEN.Easing.Cubic.Out).start();
 
                     ui.tooltip.style.display = 'block';
                     ui.tooltip.innerText = hitRegion.userData.name;
@@ -1241,7 +1242,7 @@
             } else {
                 if (STATE.hoveredObj) {
                     STATE.hoveredObj.material = matTop;
-                    new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).start();
+                    new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
                     STATE.hoveredObj = null;
                 }
                 ui.tooltip.style.display = 'none';
