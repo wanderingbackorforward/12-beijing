@@ -511,18 +511,8 @@
             bloomRadius: 0.4
         };
 
-        const NET = {
-            useProxy: true,
-            proxyBound: (adcode) => `/_proxy/bound/${adcode}`,
-            directBound: (adcode) => `https://geo.datav.aliyun.com/areas_v3/bound/${adcode}_full.json`,
-            proxyTile: (x, y, z) => `/_proxy/gaode?style=6&x=${x}&y=${y}&z=${z}`,
-            directTile: (x, y, z) => `https://webst01.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`
-        };
-        function getBoundURL(adcode) {
-            return NET.useProxy ? NET.proxyBound(adcode) : NET.directBound(adcode);
-        }
-        function getTileURL(x, y, z) {
-            return NET.useProxy ? NET.proxyTile(x, y, z) : NET.directTile(x, y, z);
+        function getLocalGeoJSONUrl(adcode) {
+            return `./data/${adcode}.json`;
         }
 
         const PROJECTS = [
@@ -789,28 +779,17 @@
             exitGISMode();
             ui.loading.style.display = 'block';
             ui.loadingText.innerText = `正在加载矢量数据：${regionName}...`;
-            let triedFallback = false;
-            let url = getBoundURL(adcode);
+            const url = getLocalGeoJSONUrl(adcode);
             try {
                 const res = await fetch(url, { cache: "force-cache" });
-                if (!res.ok) throw new Error(res.status);
+                if (!res.ok) throw new Error("GeoJSON not found");
                 const geoJson = await res.json();
-                setTimeout(() => renderVectorMap(geoJson, adcode, regionName), 100);
+                setTimeout(() => { renderVectorMap(geoJson, adcode, regionName); }, 100);
             } catch (err) {
-                if (NET.useProxy && !triedFallback) {
-                    triedFallback = true;
-                    NET.useProxy = false;
-                    try {
-                        const res2 = await fetch(getBoundURL(adcode), { cache: "force-cache" });
-                        if (!res2.ok) throw new Error(res2.status);
-                        const geoJson2 = await res2.json();
-                        setTimeout(() => renderVectorMap(geoJson2, adcode, regionName), 100);
-                        return;
-                    } catch (_) {}
-                }
-                ui.loadingText.innerText = "数据访问失败";
+                console.error(err);
+                ui.loadingText.innerText = "区域数据缺失，请联系管理员";
                 STATE.isDrilling = false;
-                setTimeout(() => { ui.loading.style.display = 'none'; }, 1000);
+                setTimeout(() => { ui.loading.style.display = "none"; }, 1200);
             }
         }
 
