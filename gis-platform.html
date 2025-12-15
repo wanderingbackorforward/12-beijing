@@ -1170,7 +1170,7 @@
             ui.card.style.display = 'none';
             ui.gisTag.style.display = 'block';
             ui.backBtn.style.display = 'block';
-            const allowMonitor = new Set(['p2','p4']);
+            const allowMonitor = new Set(['p2','p3','p4']);
             ui.gisVisitBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
             const monitorBtn = document.getElementById('monitor-btn');
             if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
@@ -1496,6 +1496,8 @@
                 window.location.href = 'suzhou_center_dashboard.html';
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p2') {
                 window.location.href = 'yangzhou-railway-command-center.html';
+            } else if (STATE.selectedProject && STATE.selectedProject.id === 'p3') {
+                window.location.href = 'https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjI0MTg0MTg2LWYyMTgtNGE4YS1hNjRjLTBkMGViMGZkNTZjOCIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.rz4VFOJCAx48HzkCeowZZacXle5zTwyyMhBafvcQqJeQPPnUYBi_UrgtShLG4yx3bG9jp0riYYrBHT5zVUjBmQ';
             } else {
                 window.location.href = 'https://www.google.com';
             }
