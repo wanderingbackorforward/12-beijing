@@ -1216,7 +1216,7 @@
             // 之前的错误：只移动了 tgt.x，导致相机斜视。
             // 修正：同时移动 pos.x 和 tgt.x，保持平视，地图整体右移。
             // 负数表示向左移，地图视觉上就靠右了。-40 应该足够让地图显示在屏幕右侧。
-            const shiftX = national ? -40 : 0; 
+            const shiftX = national ? -20 : 0; 
 
             const pos = new THREE.Vector3(shiftX, dist, dist * 0.6);
             const tgt = new THREE.Vector3(shiftX, 0, 0);
