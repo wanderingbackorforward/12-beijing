@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>西渝高铁 - 合川东隧道智能掘进监测系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        /* 基础设置 */
+        body {
+            background-color: #0b1120;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            overflow: hidden;
+            color: #e2e8f0;
+            user-select: none;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* 布局容器 */
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+            perspective: 2000px; /* 3D透视深度 */
+            overflow: hidden;
+        }
+
+        /* 顶部地图区域 */
+        #top-section {
+            flex: 1.6;
+            min-height: 0;
+            position: relative;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            z-index: 1;
+        }
+
+        #map-leaflet {
+            width: 100%;
+            height: 100%;
+            background: #0b1120;
+            z-index: 10;
+        }
+
+        /* 地图滤镜 - 深色科技风 */
+        .map-tiles {
+            filter: invert(100%) hue-rotate(180deg) brightness(0.85) contrast(1.2) grayscale(0.8);
+        }
+
+        .leaflet-container {
+            background: #0b1120 !important;
+        }
+
+        /* 自定义地图标记 */
+        .marker-pin {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: #ef4444;
+            border: 2px solid #fff;
+            box-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444;
+            position: relative;
+            transition: all 0.1s;
+        }
+        
+        .marker-pin::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 6px; height: 6px;
+            background: #fff;
+            border-radius: 50%;
+        }
+
+        /* 玻璃拟态面板通用样式 */
+        .glass-panel {
+            background: rgba(13, 22, 35, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(6, 182, 212, 0.15);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            position: absolute;
+            z-index: 100;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            will-change: transform, opacity;
+            border-radius: 4px;
+        }
+
+        /* 装饰角标 */
+        .corner-accent::before,
+        .corner-accent::after {
+            content: '';
+            position: absolute;
+            width: 12px; height: 12px;
+            border-color: #06b6d4;
+            border-style: solid;
+        }
+        .corner-accent::before { top: -1px; left: -1px; border-width: 2px 0 0 2px; }
+        .corner-accent::after { bottom: -1px; right: -1px; border-width: 0 2px 2px 0; }
+
+        /* 左侧：工程概况卡片 */
+        #project-card {
+            top: 15%;
+            left: 5%;
+            width: 340px;
+            padding: 24px;
+            transform-origin: 0% 50%;
+            /* 初始3D状态 */
+            transform: rotateY(25deg) translateX(-20px) scale(0.95);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        #project-card:hover {
+            transform: rotateY(0deg) translateX(0) scale(1);
+        }
+
+        /* 右侧：地质与设备动态卡片 */
+        #dynamic-card {
+            top: 15%;
+            right: 5%;
+            width: 320px;
+            padding: 24px;
+            transform-origin: 100% 50%;
+            transform: rotateY(-25deg) translateX(20px) scale(0.95);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s;
+        }
+
+        #dynamic-card:hover {
+            transform: rotateY(0deg) translateX(0) scale(1);
+        }
+
+        /* 翻转动画类 */
+        .flipping-out {
+            transform: rotateY(-90deg) scale(0.8) !important;
+            opacity: 0.5;
+            filter: blur(4px);
+        }
+
+        /* 底部进度条区域 */
+        #bottom-control-section {
+            flex: 0.8; /* 调整高度比例 */
+            min-height: 0;
+            background: linear-gradient(to bottom, #1e293b, #0f172a);
+            position: relative;
+            cursor: crosshair;
+            border-top: 1px solid #334155;
+            overflow: hidden;
+        }
+
+        /* 剖面图背景模拟 */
+        .profile-bg {
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7)),
+                url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAiIGhlaWdodD0iMTAwIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCI+PHBhdGggZD0iTTAgMTAwIEw1MCA1MCBMMTAwIDEwMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMzM0MTU1IiBzdHJva2Utd2lkdGg9IjIiLz48L3N2Zz4=');
+            background-size: cover;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 隧道示意图线 */
+        .tunnel-line-container {
+            position: absolute;
+            left: 5%;
+            right: 5%;
+            height: 60px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            align-items: center;
+        }
+
+        .tunnel-path {
+            width: 100%;
+            height: 12px;
+            background: #334155;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tunnel-progress {
+            height: 100%;
+            background: linear-gradient(90deg, #06b6d4, #3b82f6);
+            width: 0%;
+            position: relative;
+            box-shadow: 0 0 15px #06b6d4;
+            transition: width 0.1s linear;
+        }
+
+        /* 进度指示光标 */
+        #progress-cursor {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            left: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        #cursor-label {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ef4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        #cursor-label::after {
+            content: '';
+            position: absolute;
+            top: 100%; left: 50%;
+            margin-left: -4px;
+            border-width: 4px;
+            border-style: solid;
+            border-color: #ef4444 transparent transparent transparent;
+        }
+
+        /* 标题文字样式 */
+        .tech-title {
+            color: #06b6d4;
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.3);
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .data-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .data-value {
+            font-size: 20px;
+            color: #f1f5f9;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .highlight-red { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        .highlight-blue { color: #3b82f6; }
+        .highlight-yellow { color: #eab308; }
+
+        /* 顶部Logo */
+        .top-logo {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 50;
+            pointer-events: none;
+        }
+        .main-title {
+            font-size: 28px;
+            font-weight: 900;
+            background: linear-gradient(to right, #fff, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(6, 182, 212, 0.5);
+        }
+        .sub-title {
+            color: #64748b;
+            font-size: 12px;
+            letter-spacing: 4px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        /* 风险提示标记 */
+        .risk-badge {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            padding: 2px 8px;
+            border-radius: 2px;
+            font-size: 11px;
+            font-weight: bold;
+            display: none;
+        }
+        .risk-badge.active { display: inline-block; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+            100% { opacity: 0.6; }
+        }
+
+        /* 关键节点标记 (底部) */
+        .key-point {
+            position: absolute;
+            top: 20px; /* 相对于 line container */
+            width: 1px;
+            height: 10px;
+            background: #64748b;
+            transform: translateX(-50%);
+        }
+        .key-point span {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div id="app-container">
+
+        <!-- 顶部标题 -->
+        <div class="top-logo">
+            <div class="main-title">西渝高铁 · 合川东隧道</div>
+            <div class="sub-title">隧道掘进支护一体机智能管控中心</div>
+        </div>
+
+        <!-- 左侧：工程概况卡片 -->
+        <div id="project-card" class="glass-panel corner-accent">
+            <div class="tech-title">
+                <span>工程概览</span>
+                <i class="fa-solid fa-chart-line text-xs opacity-50"></i>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <div class="data-label">合同造价</div>
+                    <div class="data-value highlight-blue">32.69 <span class="text-sm">亿元</span></div>
+                </div>
+                <div>
+                    <div class="data-label">正线全长</div>
+                    <div class="data-value">26.657 <span class="text-sm">km</span></div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="data-label flex justify-between">
+                    <span>合川东隧道总长</span>
+                    <span class="text-white">7388 m</span>
+                </div>
+                <div class="w-full h-1 bg-gray-700 mt-2 rounded overflow-hidden">
+                    <div class="h-full bg-cyan-500 w-full"></div>
+                </div>
+            </div>
+
+            <div class="space-y-3 border-t border-gray-700 pt-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">风险等级</span>
+                    <span class="bg-red-900/50 text-red-400 border border-red-800 px-2 py-0.5 rounded text-xs">II级高风险</span>
+                </div>
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-400">施工工期</span>
+                    <span class="text-gray-200">2022.12 - 2028.11</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：动态翻转卡片 -->
+        <div id="dynamic-card" class="glass-panel corner-accent">
+            <div class="tech-title">
+                <span>实时地质与装备</span>
+                <span class="risk-badge" id="risk-alert">⚠ 不良地质预警</span>
+            </div>
+
+            <div id="card-content-area">
+                <!-- 动态内容将通过JS注入 -->
+                <div class="mb-4">
+                    <div class="data-label">当前围岩等级</div>
+                    <div class="data-value highlight-yellow" id="rock-grade">IV级</div>
+                </div>
+                <div class="mb-4">
+                    <div class="data-label">主要地质特征</div>
+                    <div class="text-sm text-gray-200 bg-white/5 p-2 rounded border-l-2 border-cyan-500" id="geo-desc">
+                        泥岩夹页岩
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <div class="data-label">作业装备状态</div>
+                    <div class="flex items-center gap-3 mt-2">
+                        <div class="w-10 h-10 rounded bg-cyan-900/40 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+                            <i class="fa-solid fa-robot"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold text-white">掘进支护一体机</div>
+                            <div class="text-xs text-green-400" id="machine-status">● 正常作业中</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4 pt-3 border-t border-gray-700 text-right">
+                 <div class="data-label">当前里程</div>
+                 <div class="data-value text-2xl tracking-widest" id="current-mileage">DK411+215</div>
+            </div>
+        </div>
+
+        <!-- 中间：地图区域 -->
+        <div id="top-section">
+            <div id="map-leaflet"></div>
+        </div>
+
+        <!-- 底部：拖动交互区域 -->
+        <div id="bottom-control-section">
+            <!-- 提示文字 -->
+            <div class="absolute top-2 left-4 z-20 text-xs text-cyan-500 font-bold bg-black/50 px-2 py-1 rounded">
+                <i class="fa-solid fa-hand-pointer mr-1"></i> 左右拖动下方区域查看工程进度
+            </div>
+
+            <div class="profile-bg px-8">
+                <div class="tunnel-line-container">
+                    <!-- 里程标记点 -->
+                    <div class="key-point" style="left: 0%;"><span>进口(DK411)</span></div>
+                    <div class="key-point" style="left: 20%;"><span>1#斜井</span></div>
+                    <div class="key-point" style="left: 45%;"><span>2#斜井</span></div>
+                    <div class="key-point" style="left: 70%;"><span>变坡点</span></div>
+                    <div class="key-point" style="left: 100%;"><span>出口(DK418)</span></div>
+
+                    <!-- 隧道线体 -->
+                    <div class="tunnel-path">
+                        <div class="tunnel-progress" id="tunnel-progress-bar"></div>
+                    </div>
+
+                    <!-- 拖动光标 -->
+                    <div id="progress-cursor">
+                        <div id="cursor-label">DK411+215</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <script>
+        // --- 1. 数据配置 (基于PDF) ---
+        // 隧道里程范围 DK411+000 到 DK418+400 (约7388m)
+        const START_MILEAGE = 411000; 
+        const END_MILEAGE = 418388;
+        const TOTAL_LENGTH = END_MILEAGE - START_MILEAGE;
+
+        // 地质与工程分段配置
+        const SECTIONS = [
+            {
+                range: [0, 0.25], // 0% - 25%
+                name: "进口工区段",
+                grade: "V级 / IV级",
+                geo: "泥岩夹页岩、砂岩，地层差异大，土石结合差。",
+                risk: false,
+                machineText: "铣挖轮廓控制中",
+                color: "cyan"
+            },
+            {
+                range: [0.25, 0.55], // 25% - 55%
+                name: "盐溶角砾岩段",
+                grade: "V级 (高风险)",
+                geo: "【重点难点】泥质胶结盐溶角砾岩。易遇溶腔、拱顶易坍塌、机械开挖工效低。",
+                risk: true,
+                machineText: "全断面机械开挖预警",
+                color: "red"
+            },
+            {
+                range: [0.55, 0.80], // 55% - 80%
+                name: "N字坡变坡段",
+                grade: "IV级",
+                geo: "灰岩、白云岩，岩溶及岩溶水发育。纵坡变化大(-4.8%转8.53%)。",
+                risk: false,
+                machineText: "爬坡姿态调整",
+                color: "yellow"
+            },
+            {
+                range: [0.80, 1.0], // 80% - 100%
+                name: "出口工区段",
+                grade: "IV级 / V级",
+                geo: "页岩夹煤线，需注意瓦斯等有害气体监测。",
+                risk: true,
+                machineText: "正常掘进 / 支护并行",
+                color: "cyan"
+            }
+        ];
+
+        // 模拟隧道在地图上的地理轨迹 (重庆合川附近坐标)
+        // 这是一个大致的S型曲线模拟
+        const MAP_PATH = [
+            [30.0150, 106.2600],
+            [30.0220, 106.2680],
+            [30.0350, 106.2750], 
+            [30.0500, 106.2720], 
+            [30.0650, 106.2800] 
+        ];
+
+        // --- 2. 状态变量 ---
+        let currentProgress = 0.0; // 0.0 to 1.0
+        let currentSectionIndex = 0;
+        let isFlipping = false;
+        let map, trackPolyline, marker;
+
+        // --- 3. 初始化地图 ---
+        function initMap() {
+            // 中心点设在合川附近
+            map = L.map('map-leaflet', { 
+                zoomControl: false, 
+                attributionControl: false,
+                dragging: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false
+            });
+            
+            // 使用OSM Tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+                maxZoom: 18,
+                className: 'map-tiles' // CSS滤镜处理
+            }).addTo(map);
+
+            // 绘制隧道线路
+            trackPolyline = L.polyline(MAP_PATH, { 
+                color: '#06b6d4', 
+                weight: 5, 
+                opacity: 0.8,
+                dashArray: '10, 10' 
+            }).addTo(map);
+
+            // 适应视野
+            map.fitBounds(trackPolyline.getBounds(), { padding: [50, 50] });
+
+            // 添加掘进机标记
+            const customIcon = L.divIcon({ 
+                className: 'custom-div-icon', 
+                html: '<div class="marker-pin"></div>', 
+                iconSize: [24, 24], 
+                iconAnchor: [12, 12] 
+            });
+            marker = L.marker(MAP_PATH[0], { icon: customIcon }).addTo(map);
+        }
+
+        // --- 4. 交互逻辑 ---
+        const bottomSection = document.getElementById('bottom-control-section');
+        const progressBar = document.getElementById('tunnel-progress-bar');
+        const progressCursor = document.getElementById('progress-cursor');
+        const cursorLabel = document.getElementById('cursor-label');
+        const mileageDisplay = document.getElementById('current-mileage');
+        
+        // 卡片元素
+        const dynamicCard = document.getElementById('dynamic-card');
+        const rockGrade = document.getElementById('rock-grade');
+        const geoDesc = document.getElementById('geo-desc');
+        const machineStatus = document.getElementById('machine-status');
+        const riskAlert = document.getElementById('risk-alert');
+
+        // 计算线路上某一百分比的坐标点
+        function getPointOnLine(percent) {
+            const latlngs = trackPolyline.getLatLngs();
+            // 简单估算：假设线段等长分布（简化计算）
+            // 实际应用需计算每一段长度
+            const totalPoints = latlngs.length - 1;
+            const exactPos = percent * totalPoints;
+            const index = Math.floor(exactPos);
+            const remainder = exactPos - index;
+
+            if (index >= totalPoints) return latlngs[totalPoints];
+
+            const p1 = latlngs[index];
+            const p2 = latlngs[index + 1];
+
+            const lat = p1.lat + (p2.lat - p1.lat) * remainder;
+            const lng = p1.lng + (p2.lng - p1.lng) * remainder;
+            return [lat, lng];
+        }
+
+        // 更新UI
+        function updateUI(percent) {
+            // 1. 更新底部进度条位置
+            const widthPct = percent * 100;
+            progressBar.style.width = `${widthPct}%`;
+            progressCursor.style.left = `${widthPct}%`;
+
+            // 2. 计算里程
+            const currentMeters = Math.floor(START_MILEAGE + (TOTAL_LENGTH * percent));
+            const km = Math.floor(currentMeters / 1000);
+            const m = Math.floor(currentMeters % 1000);
+            const mileageText = `DK${km}+${m.toString().padStart(3, '0')}`;
+            
+            cursorLabel.innerText = mileageText;
+            mileageDisplay.innerText = mileageText;
+
+            // 3. 更新地图标记
+            if (map && marker) {
+                const newPos = getPointOnLine(percent);
+                marker.setLatLng(newPos);
+            }
+
+            // 4. 检查是否需要切换卡片内容 (翻转效果)
+            const newSectionIndex = SECTIONS.findIndex(s => percent >= s.range[0] && percent < s.range[1]);
+            
+            if (newSectionIndex !== -1 && newSectionIndex !== currentSectionIndex) {
+                flipCard(SECTIONS[newSectionIndex]);
+                currentSectionIndex = newSectionIndex;
+            }
+        }
+
+        // 翻转卡片逻辑
+        function flipCard(data) {
+            if (isFlipping) return;
+            isFlipping = true;
+
+            // 1. 翻转出去
+            dynamicCard.classList.add('flipping-out');
+
+            // 2. 等待动画过半，更新数据
+            setTimeout(() => {
+                // 更新地质等级
+                rockGrade.innerText = data.grade;
+                if (data.color === 'red') {
+                    rockGrade.className = 'data-value highlight-red';
+                } else if (data.color === 'yellow') {
+                    rockGrade.className = 'data-value highlight-yellow';
+                } else {
+                    rockGrade.className = 'data-value highlight-blue';
+                }
+
+                // 更新描述
+                geoDesc.innerText = data.geo;
+                
+                // 更新机器状态
+                machineStatus.innerText = `● ${data.machineText}`;
+
+                // 风险预警显示
+                if (data.risk) {
+                    riskAlert.classList.add('active');
+                } else {
+                    riskAlert.classList.remove('active');
+                }
+
+                // 3. 翻转回来
+                dynamicCard.classList.remove('flipping-out');
+                
+                setTimeout(() => {
+                    isFlipping = false;
+                }, 300);
+            }, 300);
+        }
+
+        // 鼠标/触摸事件处理
+        function handleInput(clientX) {
+            const rect = bottomSection.getBoundingClientRect();
+            let x = clientX - rect.left;
+            
+            // 限制范围
+            if (x < 0) x = 0;
+            if (x > rect.width) x = rect.width;
+
+            const percent = x / rect.width;
+            updateUI(percent);
+        }
+
+        // 事件监听
+        bottomSection.addEventListener('mousemove', (e) => {
+            if (e.buttons === 1) { // 只有按住时才拖动，或者单纯hover也行，这里模仿原版直接hover
+                 handleInput(e.clientX);
+            }
+        });
+        // 允许直接悬停预览
+        bottomSection.addEventListener('mousemove', (e) => handleInput(e.clientX));
+
+        bottomSection.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            handleInput(e.touches[0].clientX);
+        }, { passive: false });
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            updateUI(0.05); // 初始位置
+        });
+
+    </script>
+</body>
+</html>
