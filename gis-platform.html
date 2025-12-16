@@ -1203,7 +1203,7 @@
             const dist = maxDim * 1.1;
             const national = String(adcode) === '100000';
             const pos = new THREE.Vector3(national ? 20 : 0, dist, dist * 0.6);
-            const tgt = new THREE.Vector3(national ? 16 : 0, 0, 0);
+            const tgt = new THREE.Vector3(national ? -10 : 0, 0, 0);
             animateCamera(pos, tgt);
 
             STATE.isDrilling = false;
