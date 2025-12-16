@@ -103,6 +103,9 @@
             background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), transparent);
         }
 
+        /* 【修改说明】
+           此处是修改左侧面板静态数字的地方
+        */
         .data-row {
             display: flex;
             justify-content: space-between;
@@ -840,6 +843,12 @@
             tex.colorSpace = THREE.SRGBColorSpace;
             return tex;
         }
+
+        /*
+           【修改说明】
+           此处是修改地图上具体项目数据（数字）的地方
+           修改 investment, progress 等字段
+        */
         const PROJECTS = [
             { id: 'p1', name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
             { id: 'p2', name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
@@ -1202,8 +1211,16 @@
             const maxDim = Math.max(size.x, size.y);
             const dist = maxDim * 1.1;
             const national = String(adcode) === '100000';
-            const pos = new THREE.Vector3(national ? 20 : 0, dist, dist * 0.6);
-            const tgt = new THREE.Vector3(national ? -20 : 0, 0, 0);
+            
+            // --- 【修改处】 ---
+            // 之前的错误：只移动了 tgt.x，导致相机斜视。
+            // 修正：同时移动 pos.x 和 tgt.x，保持平视，地图整体右移。
+            // 负数表示向左移，地图视觉上就靠右了。-40 应该足够让地图显示在屏幕右侧。
+            const shiftX = national ? -40 : 0; 
+
+            const pos = new THREE.Vector3(shiftX, dist, dist * 0.6);
+            const tgt = new THREE.Vector3(shiftX, 0, 0);
+            
             animateCamera(pos, tgt);
 
             STATE.isDrilling = false;
