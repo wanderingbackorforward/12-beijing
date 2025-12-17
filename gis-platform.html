@@ -105,6 +105,7 @@
 
         /* 【修改说明】
            此处是修改左侧面板静态数字的地方
+           已更新：示范工程 6，总里程 38.53 km
         */
         .data-row {
             display: flex;
@@ -692,8 +693,8 @@
 
     <div id="left-panel">
         <div class="panel-title">区域统计概览</div>
-        <div class="data-row"><span>示范工程</span><span class="data-val">5</span></div>
-        <div class="data-row"><span>总里程</span><span class="data-val">31.14 km</span></div>
+        <div class="data-row"><span>示范工程</span><span class="data-val">6</span></div>
+        <div class="data-row"><span>总里程</span><span class="data-val">38.53 km</span></div>
         <div class="data-row"><span>在线监测点</span><span class="data-val">1,245</span></div>
         <div class="data-row"><span>安全预警</span><span class="data-val" style="color:#ff0000">0</span></div>
     </div>
@@ -848,13 +849,15 @@
            【修改说明】
            此处是修改地图上具体项目数据（数字）的地方
            修改 investment, progress 等字段
+           已添加：p6 西渝高铁合川东隧道
         */
         const PROJECTS = [
             { id: 'p1', name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
             { id: 'p2', name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
             { id: 'p3', name: "温州茶白片区EUP竖井智慧车库", location: "浙江温州", lat: 27.9943, lng: 120.6994, investment: "深 65.92m", progress: 42, status: "基坑开挖", provinceCode: 330000, cityCode: 330300 },
             { id: 'p4', name: "通苏嘉甬苏州东隧道", location: "江苏苏州", lat: 31.3200, lng: 120.7200, investment: "11.81 km", progress: 75, status: "盾构掘进", provinceCode: 320000, cityCode: 320500 },
-            { id: 'p5', name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 }
+            { id: 'p5', name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 },
+            { id: 'p6', name: "西渝高铁合川东隧道", location: "重庆合川", lat: 30.2625, lng: 106.2247, investment: "7.39 km", progress: 35, status: "施工中", provinceCode: 500000, cityCode: 500117 }
         ];
 
         const STATE = {
@@ -1215,7 +1218,7 @@
             // --- 【修改处】 ---
             // 之前的错误：只移动了 tgt.x，导致相机斜视。
             // 修正：同时移动 pos.x 和 tgt.x，保持平视，地图整体右移。
-            // 负数表示向左移，地图视觉上就靠右了。-40 应该足够让地图显示在屏幕右侧。
+            // 负数表示向左移，地图视觉上就靠右了。之前是 -40，现在减半改为 -20，让地图稍微往回（左）一点。
             const shiftX = national ? -20 : 0; 
 
             const pos = new THREE.Vector3(shiftX, dist, dist * 0.6);
@@ -1310,11 +1313,11 @@
             ui.gisTag.style.display = 'block';
             ui.backBtn.style.display = 'block';
             
-            // "大屏监控"按钮显示逻辑 (保留 p3, p2, p4)
-            const allowVisit = new Set(['p2','p3','p4']);
+            // "大屏监控"按钮显示逻辑 (保留 p3, p2, p4) + p6
+            const allowVisit = new Set(['p2','p3','p4','p6']);
             ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
             
-            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4)
+            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
             const allowMonitor = new Set(['p2','p4']);
             const monitorBtn = document.getElementById('monitor-btn');
             if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
@@ -1645,6 +1648,9 @@
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p3') {
                 // 针对温州项目 (p3)，不再跳转，而是打开Iframe弹窗
                 openSmartGarageMonitor();
+            } else if (STATE.selectedProject && STATE.selectedProject.id === 'p6') {
+                 // 新增合川东隧道 p6 - 跳转到同目录下的 xiyu.html
+                 window.location.href = 'xiyu.html';
             } else {
                 window.location.href = 'https://www.google.com';
             }
