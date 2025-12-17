@@ -399,28 +399,6 @@
             color: #000;
             box-shadow: 0 0 20px #00ff88;
         }
-        #nebula-btn {
-            position: absolute;
-            top: 240px;
-            right: 40px;
-            padding: 8px 25px;
-            background: rgba(0, 200, 100, 0.2);
-            border: 1px solid #00ff88;
-            color: #00ff88;
-            cursor: pointer;
-            z-index: 50;
-            display: none;
-            font-weight: bold;
-            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s;
-        }
-        #nebula-btn:hover {
-            background: #00ff88;
-            color: #000;
-            box-shadow: 0 0 20px #00ff88;
-        }
 
         #gis-tag {
             position: absolute;
@@ -659,12 +637,6 @@
                 padding: 8px 15px;
                 font-size: 12px;
             }
-            #nebula-btn {
-                top: 190px;
-                right: 10px;
-                padding: 8px 15px;
-                font-size: 12px;
-            }
 
             /* GIS tag */
             #gis-tag {
@@ -734,10 +706,7 @@
 
     <button id="back-btn" onclick="goBack()">返回上一级</button>
     <button id="gis-visit-btn" onclick="visitProjectWebsite()">大屏监控</button>
-    <button id="monitor-btn"
-        onclick="window.location.href='https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw'">监控平台</button>
-    <button id="nebula-btn"
-        onclick="window.location.href='https://nebula.weidax.com/graphic/pageView/ba29fa15fe5a60e8e82076ca5434cd75/3a0d28ff-d6ac-f356-f80a-662edaf0063c/687f94485b109030b0347e2fdd1afc0d'">监控平台</button>
+    <button id="monitor-btn" onclick="openMonitorPlatform()">监控平台</button>
 
     <div id="loading">
         <div class="spinner"></div>
@@ -1347,11 +1316,10 @@
             const allowVisit = new Set(['p2','p3','p4','p6']);
             ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
             
+            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
             const allowMonitor = new Set(['p2','p4']);
             const monitorBtn = document.getElementById('monitor-btn');
-            const nebulaBtn = document.getElementById('nebula-btn');
             if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
-            if (nebulaBtn) nebulaBtn.style.display = (proj.id === 'p6') ? 'block' : 'none';
 
             ui.loading.style.display = 'block';
             ui.loadingText.innerText = "正在获取高清卫星影像...";
@@ -1684,6 +1652,15 @@
                  window.location.href = 'xiyu.html';
             } else {
                 window.location.href = 'https://www.google.com';
+            }
+        }
+        function openMonitorPlatform() {
+            if (!STATE.selectedProject) return;
+            const id = STATE.selectedProject.id;
+            if (id === 'p2') {
+                window.location.href = 'http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex';
+            } else if (id === 'p4') {
+                window.location.href = 'https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw';
             }
         }
 
