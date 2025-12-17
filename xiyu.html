@@ -329,6 +329,38 @@
             white-space: nowrap;
         }
 
+        /* 监控平台按钮样式（对齐苏州页面） */
+        .nav-buttons {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            display: flex;
+            gap: 10px;
+        }
+        .nav-btn {
+            padding: 8px 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .nav-btn-monitor {
+            background: rgba(0, 200, 100, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+        }
+        .nav-btn-monitor:hover {
+            background: #00ff88;
+            color: #000;
+            box-shadow: 0 0 20px #00ff88;
+        }
+
     </style>
 </head>
 
@@ -346,6 +378,12 @@
         <div class="top-logo">
             <div class="main-title">西渝高铁 · 合川东隧道</div>
             <div class="sub-title">隧道掘进支护一体机智能管控中心</div>
+        </div>
+
+        <!-- 监控平台按钮（居中顶部） -->
+        <div class="nav-buttons">
+            <button class="nav-btn nav-btn-monitor"
+                onclick="window.location.href='https://nebula.weidax.com/graphic/pageView/ba29fa15fe5a60e8e82076ca5434cd75/3a0d28ff-d6ac-f356-f80a-662edaf0063c/687f94485b109030b0347e2fdd1afc0d'">监控平台</button>
         </div>
 
         <!-- 左侧：工程概况卡片 -->
