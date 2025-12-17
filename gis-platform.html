@@ -1654,15 +1654,15 @@
                 window.location.href = 'https://www.google.com';
             }
         }
-        function openMonitorPlatform() {
+        window.openMonitorPlatform = function () {
             if (!STATE.selectedProject) return;
             const id = STATE.selectedProject.id;
             if (id === 'p2') {
-                window.location.href = 'http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex';
+                window.location.assign('http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex');
             } else if (id === 'p4') {
-                window.location.href = 'https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw';
+                window.location.assign('https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw');
             }
-        }
+        };
 
         // 新增：温州项目智慧车库监控弹窗逻辑
         function openSmartGarageMonitor() {
