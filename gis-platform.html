@@ -1211,8 +1211,9 @@
             renderMarkers(center, STATE.currentAdcode);
 
             const maxDim = Math.max(size.x, size.y);
-            const dist = maxDim * 1.1;
             const national = String(adcode) === '100000';
+            const distFactor = national ? 0.88 : 1.1;
+            const dist = maxDim * distFactor;
             
             // --- 【修改处】 ---
             // 之前的错误：只移动了 tgt.x，导致相机斜视。
