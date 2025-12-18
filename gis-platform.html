@@ -1278,7 +1278,7 @@
                 const g = new THREE.Group();
                 g.position.set(x, 1.0, -y);
                 const isNational = (cur === '100000');
-                const markerScale = isNational ? 1.25 : 1.0;
+                const markerScale = isNational ? 2.5 : 1.0;
                 g.scale.set(markerScale, markerScale, markerScale);
 
                 const cone = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.7, 4), matMarker);
