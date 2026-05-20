@@ -15,8 +15,8 @@ var PROJECTS = [
 
 // --- 各工程监控平台链接 ---
 var PROJECT_URLS = {
-    p2: "http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex",
-    p4: "https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw"
+    p2: "http://120.55.70.218/md/nycj/",
+    p4: "http://120.55.70.218/tsjy/"
 };
 
 // --- 帆软报表链接 (iframe 弹窗用) ---
