@@ -1,0 +1,987 @@
+import * as THREE from 'three';
+            import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+            import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+            import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+            import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+            import * as TWEEN from 'three/addons/libs/tween.module.js';
+
+        const IS_MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.matchMedia('(max-width: 768px)').matches;
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.classList.toggle('mobile', IS_MOBILE);
+        });
+
+        const CONFIG = {
+            bgColor: 0x000510,
+            fogColor: 0x000510,
+            baseColor: 0x000a20,
+            topColor: 0x001133,
+            roadColorMain: '#ffaa00',
+            roadColorSub: '#005577',
+            roadColorLight: '#00ffff',
+            edgeColor: 0x00ffff,
+            mapScale: 1.2,
+            bloomStrength: 1.5,
+            bloomRadius: 0.4
+        };
+
+        function getLocalGeoJSONUrl(adcode) {
+            return `./data/${adcode}.json`;
+        }
+
+        const TILE = {
+            source: 'osm'
+        };
+        function getOsmTileURL(x, y, z) {
+            const subs = ['a', 'b', 'c'];
+            const s = subs[(x + y) % subs.length];
+            return `https://${s}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+        }
+        function getGaodeTileURL(x, y, z) {
+            return `https://webst01.is.autonavi.com/appmaptile?style=6&x=${x}&y=${y}&z=${z}`;
+        }
+        function getTileURL(x, y, z) {
+            return TILE.source === 'gaode' ? getGaodeTileURL(x, y, z) : getOsmTileURL(x, y, z);
+        }
+        function createErrorTileTexture() {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#050b14';
+            ctx.fillRect(0, 0, size, size);
+            ctx.strokeStyle = 'rgba(0,255,255,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < size; i += 32) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+            }
+            ctx.fillStyle = 'rgba(255,170,0,0.15)';
+            ctx.fillRect(0, 0, size, 24);
+            ctx.fillStyle = 'rgba(255,255,255,0.7)';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('tile unavailable', 8, 16);
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.colorSpace = THREE.SRGBColorSpace;
+            return tex;
+        }
+
+        
+        const STATE = {
+            currentAdcode: 100000,
+            viewMode: 'VECTOR',
+            history: [],
+            isDrilling: false,
+            hoveredObj: null,
+            selectedProject: null
+        };
+
+        let scene, camera, renderer, composer, controls, raycaster, pointer;
+        let globalAmbientLight, globalDirLight;
+        let mapGroup = new THREE.Group();
+        let markersGroup = new THREE.Group();
+        let tileGroup = new THREE.Group();
+        let radarMesh;
+        let bloomPass;
+        let hoverReleaseTimer = null;
+
+        let matBase, matTop, matLine, matHover, matMarker;
+
+        const ui = {
+            tooltip: document.getElementById('tooltip'),
+            loading: document.getElementById('loading'),
+            loadingText: document.getElementById('loading-text'),
+            card: document.getElementById('project-card'),
+            backBtn: document.getElementById('back-btn'),
+            gisVisitBtn: document.getElementById('gis-visit-btn'),
+            gisTag: document.getElementById('gis-tag'),
+            quickButtons: document.getElementById('quick-buttons-container'),
+            headerTitle: document.querySelector('.header-title'),
+            iframeModal: document.getElementById('iframe-modal'),
+            iframeContent: document.getElementById('iframe-content'),
+            iframeLoader: document.getElementById('iframe-loader'),
+            iframeTitle: document.getElementById('iframe-modal-title')
+        };
+        const DEFAULT_TITLE = '城市大型基础设施暗挖建造云平台';
+
+        window.goBack = goBack;
+        window.closeProjectCard = closeProjectCard;
+        window.enterSiteMode = enterSiteMode;
+        window.visitProjectWebsite = visitProjectWebsite;
+        window.closeIframeModal = closeIframeModal;
+
+        init();
+        animate();
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // 监听来自Iframe的消息 (预留)
+        window.addEventListener('message', function(event) {
+            // 安全检查：验证 event.origin
+            // if (event.origin !== "http://your-finereport-server.com") return;
+            
+            console.log("收到来自帆软页面的消息:", event.data);
+            // 处理逻辑...
+        });
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(CONFIG.bgColor);
+            scene.fog = new THREE.FogExp2(CONFIG.fogColor, 0.0015);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 8000);
+            camera.position.set(0, 80, 60);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, IS_MOBILE ? 1.5 : 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.3;
+            container.appendChild(renderer.domElement);
+
+            raycaster = new THREE.Raycaster();
+            pointer = new THREE.Vector2();
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('resize', onWindowResize);
+
+            initMaterials();
+            setupLighting();
+            createEnvironment();
+            initQuickNav();
+
+            scene.add(mapGroup);
+            scene.add(markersGroup);
+            scene.add(tileGroup);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.maxPolarAngle = Math.PI / 2.2;
+            controls.minDistance = 5;
+            controls.maxDistance = 2000;
+
+            const renderScene = new RenderPass(scene, camera);
+            bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.2;
+            bloomPass.strength = CONFIG.bloomStrength;
+            bloomPass.radius = CONFIG.bloomRadius;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            loadMapData(100000, "中国");
+            const osmAttrib = document.createElement('div');
+            osmAttrib.id = 'osm-attrib';
+            osmAttrib.style.position = 'absolute';
+            osmAttrib.style.right = '10px';
+            osmAttrib.style.bottom = '10px';
+            osmAttrib.style.color = '#cccccc';
+            osmAttrib.style.fontSize = '12px';
+            osmAttrib.style.zIndex = '30';
+            osmAttrib.style.pointerEvents = 'none';
+            osmAttrib.style.display = 'none';
+            osmAttrib.innerHTML = '&copy; <a href=\"https://www.openstreetmap.org/copyright\" target=\"_blank\" style=\"color:#99c\">OpenStreetMap</a> contributors';
+            document.body.appendChild(osmAttrib);
+            window.__osmAttrib = osmAttrib;
+        }
+
+        function initQuickNav() {
+            ui.quickButtons.innerHTML = '';
+            PROJECTS.forEach(proj => {
+                const btn = document.createElement('div');
+                btn.className = 'quick-btn';
+                btn.innerText = proj.name;
+                btn.title = proj.name;
+                btn.onclick = () => {
+                    STATE.selectedProject = proj;
+                    updateCardContent(proj);
+                    enterSiteMode();
+                };
+                ui.quickButtons.appendChild(btn);
+            });
+        }
+
+        function updateCardContent(proj) {
+            document.getElementById('card-title').innerText = proj.name;
+            document.getElementById('card-status').innerText = proj.status;
+            document.getElementById('card-location').innerText = proj.location;
+            document.getElementById('card-invest').innerText = proj.investment;
+            document.getElementById('card-progress-text').innerText = proj.progress + '%';
+        }
+
+        function initMaterials() {
+            matBase = new THREE.MeshPhysicalMaterial({
+                color: CONFIG.baseColor,
+                metalness: 0.3, roughness: 0.7,
+                transparent: true, opacity: 0.9,
+            });
+
+            const roadTexture = createRoadNetworkTexture();
+            matTop = new THREE.MeshStandardMaterial({
+                color: CONFIG.topColor,
+                map: roadTexture,
+                emissive: 0xffffff,
+                emissiveMap: roadTexture,
+                emissiveIntensity: 1.0,
+                roughness: 0.4,
+                metalness: 0.8,
+            });
+
+            matHover = new THREE.MeshStandardMaterial({
+                color: 0xffaa00,
+                emissive: 0xffaa00, emissiveIntensity: 1.5,
+                roughness: 0.2, metalness: 1.0
+            });
+
+            matLine = new THREE.LineBasicMaterial({
+                color: CONFIG.edgeColor,
+                transparent: true, opacity: 0.8,
+            });
+
+            matMarker = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
+        }
+
+        function createRoadNetworkTexture() {
+            const size = 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#000510';
+            ctx.fillRect(0, 0, size, size);
+
+            ctx.strokeStyle = CONFIG.roadColorSub;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.4;
+            for (let i = 0; i < 300; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                const len = Math.random() * 100 + 20;
+                const vertical = Math.random() > 0.5;
+                ctx.beginPath();
+                if (vertical) { ctx.moveTo(x, y); ctx.lineTo(x, y + len); }
+                else { ctx.moveTo(x, y); ctx.lineTo(x + len, y); }
+                ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#002244';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.3;
+            const step = 50;
+            for (let i = 0; i < size; i += step) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+            }
+
+            ctx.strokeStyle = CONFIG.roadColorMain;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.9;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = CONFIG.roadColorMain;
+
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                if (i % 2 === 0) {
+                    const y = Math.random() * size;
+                    ctx.moveTo(0, y);
+                    ctx.bezierCurveTo(size / 3, y + (Math.random() - 0.5) * 100, size / 3 * 2, y + (Math.random() - 0.5) * 100, size, y);
+                } else {
+                    const x = Math.random() * size;
+                    ctx.moveTo(x, 0);
+                    ctx.bezierCurveTo(x + (Math.random() - 0.5) * 100, size / 3, x + (Math.random() - 0.5) * 100, size / 3 * 2, x, size);
+                }
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = CONFIG.roadColorLight;
+            ctx.shadowColor = CONFIG.roadColorLight;
+            ctx.globalAlpha = 1.0;
+            for (let i = 0; i < 40; i++) {
+                const x = Math.random() * size;
+                const y = Math.random() * size;
+                ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(0.3, 0.3);
+            return texture;
+        }
+
+        function setupLighting() {
+            globalAmbientLight = new THREE.AmbientLight(0x4040ff, 0.6);
+            scene.add(globalAmbientLight);
+
+            globalDirLight = new THREE.DirectionalLight(0xaaccff, 1.5);
+            globalDirLight.position.set(100, 200, 50);
+            scene.add(globalDirLight);
+
+            const spot = new THREE.SpotLight(0xffaa00, 500);
+            spot.position.set(-100, 50, -50);
+            scene.add(spot);
+        }
+
+        function createEnvironment() {
+            const grid = new THREE.GridHelper(600, 60, 0x004488, 0x001122);
+            grid.position.y = -2;
+            grid.material.transparent = true;
+            grid.material.opacity = 0.2;
+            scene.add(grid);
+
+            const starsGeo = new THREE.BufferGeometry();
+            const starsCount = 1000;
+            const posArray = new Float32Array(starsCount * 3);
+            for (let i = 0; i < starsCount * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 800;
+            }
+            starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const starsMat = new THREE.PointsMaterial({
+                size: 1.5, color: 0x00ffff, transparent: true, opacity: 0.6
+            });
+            const stars = new THREE.Points(starsGeo, starsMat);
+            scene.add(stars);
+        }
+
+        async function loadMapData(adcode, regionName) {
+            if (STATE.isDrilling) return;
+            STATE.isDrilling = true;
+            ui.card.style.display = 'none';
+            exitGISMode();
+            ui.loading.style.display = 'block';
+            ui.loadingText.innerText = `正在加载矢量数据：${regionName}...`;
+            const url = getLocalGeoJSONUrl(adcode);
+            try {
+                const res = await fetch(url, { cache: "no-store" });
+                if (!res.ok) throw new Error("GeoJSON not found");
+                const geoJson = await res.json();
+                setTimeout(() => { renderVectorMap(geoJson, adcode, regionName); }, 100);
+            } catch (err) {
+                console.error(err);
+                ui.loadingText.innerText = "区域数据缺失，请联系管理员";
+                STATE.isDrilling = false;
+                setTimeout(() => { ui.loading.style.display = "none"; }, 1200);
+            }
+        }
+
+        function renderVectorMap(geoJson, adcode, regionName) {
+            mapGroup.clear();
+            markersGroup.clear();
+            tileGroup.clear();
+            mapGroup.visible = true;
+
+            STATE.currentAdcode = String(adcode);
+            ui.backBtn.style.display = adcode === 100000 ? 'none' : 'block';
+
+            const tempGroup = new THREE.Group();
+            let features = geoJson.features || [];
+            if (STATE.currentAdcode === '100000') {
+                features = features.filter(f => {
+                    const ac = String((f.properties && f.properties.adcode) || '');
+                    return /^[0-9]{6}$/.test(ac) && ac.endsWith('0000');
+                });
+            }
+            features.forEach(feature => {
+                const geometry = feature.geometry;
+                if (!geometry) return;
+                const func = (rings) => createRegionMesh(rings, feature.properties?.name, String(feature.properties?.adcode), tempGroup);
+                if (geometry.type === 'Polygon') {
+                    func(geometry.coordinates);
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(func);
+                } else if (geometry.type === 'GeometryCollection' && Array.isArray(geometry.geometries)) {
+                    geometry.geometries.forEach(g => {
+                        if (!g) return;
+                        if (g.type === 'Polygon') func(g.coordinates);
+                        else if (g.type === 'MultiPolygon') g.coordinates.forEach(func);
+                    });
+                }
+            });
+
+            const box = new THREE.Box3().setFromObject(tempGroup);
+            const center = new THREE.Vector3();
+            box.getCenter(center);
+            const size = new THREE.Vector3();
+            box.getSize(size);
+
+            tempGroup.children.forEach(child => {
+                child.position.x -= center.x;
+                child.position.y -= center.y;
+            });
+
+            while (tempGroup.children.length > 0) mapGroup.add(tempGroup.children[0]);
+            mapGroup.rotation.x = -Math.PI / 2;
+
+            renderMarkers(center, STATE.currentAdcode);
+
+            const maxDim = Math.max(size.x, size.y);
+            const dist = maxDim * 1.1;
+            const national = String(adcode) === '100000';
+            
+            // --- 【修改处】 ---
+            // 之前的错误：只移动了 tgt.x，导致相机斜视。
+            // 修正：同时移动 pos.x 和 tgt.x，保持平视，地图整体右移。
+            // 负数表示向左移，地图视觉上就靠右了。之前是 -40，现在减半改为 -20，让地图稍微往回（左）一点。
+            const shiftX = national ? -20 : 0; 
+
+            const pos = new THREE.Vector3(shiftX, dist, dist * 0.6);
+            const tgt = new THREE.Vector3(shiftX, 0, 0);
+            
+            animateCamera(pos, tgt);
+
+            STATE.isDrilling = false;
+            ui.loading.style.display = 'none';
+        }
+
+        function createRegionMesh(rings, name, adcode, parentGroup) {
+            if (!Array.isArray(rings) || rings.length === 0) return;
+            const toXY = (pt) => {
+                const [lng, lat] = pt;
+                return { x: lng * CONFIG.mapScale, y: lat * CONFIG.mapScale };
+            };
+            const outer = rings[0];
+            const shape = new THREE.Shape();
+            outer.forEach((p, i) => {
+                const { x, y } = toXY(p);
+                if (i === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+            });
+            for (let h = 1; h < rings.length; h++) {
+                const holeRing = rings[h];
+                const path = new THREE.Path();
+                holeRing.forEach((p, i) => {
+                    const { x, y } = toXY(p);
+                    if (i === 0) path.moveTo(x, y); else path.lineTo(x, y);
+                });
+                shape.holes.push(path);
+            }
+
+            const extrudeSettings = { depth: 0.6, bevelEnabled: false };
+            const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+            const mesh = new THREE.Mesh(geometry, [matTop, matBase]);
+
+            const edges = new THREE.EdgesGeometry(geometry, 15);
+            const line = new THREE.LineSegments(edges, matLine);
+            line.position.z = 0.01;
+            mesh.add(line);
+
+            mesh.userData = { name: name, adcode: String(adcode), isRegion: true };
+            parentGroup.add(mesh);
+        }
+
+        function renderMarkers(mapCenterOffset, currentAdcode) {
+            const cur = String(currentAdcode);
+            PROJECTS.forEach(proj => {
+                const prov = String(proj.provinceCode);
+                const city = String(proj.cityCode);
+                let isVisible = (cur === '100000') || (cur === prov) || (cur === city);
+                if (!isVisible) return;
+
+                const x = proj.lng * CONFIG.mapScale - mapCenterOffset.x;
+                const y = proj.lat * CONFIG.mapScale - mapCenterOffset.y;
+
+                const g = new THREE.Group();
+                g.position.set(x, 1.0, -y);
+                const isNational = (cur === '100000');
+                const markerScale = isNational ? 1.25 : 1.0;
+                g.scale.set(markerScale, markerScale, markerScale);
+
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.7, 4), matMarker);
+                cone.position.y = 0.5;
+                cone.rotation.x = Math.PI;
+                g.add(cone);
+
+                const ring = new THREE.Mesh(
+                    new THREE.RingGeometry(0.17, 0.20, 32),
+                    new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+                );
+                ring.rotation.x = -Math.PI / 2;
+                g.add(ring);
+
+                // new TWEEN.Tween(cone.position).to({ y: 1.5 }, 1000).yoyo(true).repeat(Infinity).start();
+                // new TWEEN.Tween(ring.scale).to({ x: 3, y: 3 }, 1500).repeat(Infinity).start();
+                // new TWEEN.Tween(ring.material).to({ opacity: 0 }, 1500).repeat(Infinity).start();
+                ring.scale.set(0.5, 0.5, 0.5);
+
+                g.userData = { isMarker: true, data: proj };
+                markersGroup.add(g);
+            });
+        }
+
+        function enterSiteMode() {
+            if (!STATE.selectedProject) return;
+            const proj = STATE.selectedProject;
+            STATE.viewMode = 'GIS';
+
+            ui.card.style.display = 'none';
+            ui.gisTag.style.display = 'block';
+            ui.backBtn.style.display = 'block';
+            
+            // "大屏监控"按钮显示逻辑 (保留 p3, p2, p4) + p6
+            const allowVisit = new Set(['p2','p3','p4','p6']);
+            ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
+            
+            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
+            const allowMonitor = new Set(['p2','p4']);
+            const monitorBtn = document.getElementById('monitor-btn');
+            if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
+
+            ui.loading.style.display = 'block';
+            ui.loadingText.innerText = "正在获取高清卫星影像...";
+            TILE.source = 'osm';
+            if (window.__osmAttrib) window.__osmAttrib.style.display = 'block';
+            if (ui.headerTitle && proj && proj.name) ui.headerTitle.innerText = proj.name;
+
+            if (STATE.hoveredObj) {
+                new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                STATE.hoveredObj = null;
+            }
+            new TWEEN.Tween(mapGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
+            new TWEEN.Tween(markersGroup.scale).to({ x: 0, y: 0, z: 0 }, 500).start();
+
+            renderer.toneMappingExposure = 0.8;
+            bloomPass.strength = 0.35;
+            bloomPass.threshold = 0.5;
+            bloomPass.radius = 0.25;
+            matTop.emissiveIntensity = 0.6;
+            matHover.emissiveIntensity = 0.8;
+            new TWEEN.Tween(globalAmbientLight).to({ intensity: 0.6 }, 1000).start();
+            new TWEEN.Tween(scene.fog).to({ density: 0.0005 }, 1000).start();
+
+            setTimeout(() => {
+                mapGroup.visible = false;
+                markersGroup.visible = false;
+                initTileMap(proj);
+            }, 500);
+        }
+
+        function initTileMap(proj) {
+            tileGroup.clear();
+            tileGroup.visible = true;
+
+            const zoom = IS_MOBILE ? 15 : 16;
+            const centerTileX = lon2tile(proj.lng, zoom);
+            const centerTileY = lat2tile(proj.lat, zoom);
+            const range = IS_MOBILE ? 1 : 2;
+            const tileSize = 20;
+            const textureLoader = new THREE.TextureLoader();
+            const tilesExpected = (range * 2 + 1) * (range * 2 + 1);
+            let tilesLoaded = 0;
+
+            for (let x = -range; x <= range; x++) {
+                for (let y = -range; y <= range; y++) {
+                    const tileX = centerTileX + x;
+                    const tileY = centerTileY + y;
+                    let url = getTileURL(tileX, tileY, zoom);
+
+                    const mesh = new THREE.Mesh(
+                        new THREE.PlaneGeometry(tileSize, tileSize),
+                        new THREE.MeshBasicMaterial({ color: 0x777777, transparent: true, opacity: 0 })
+                    );
+                    mesh.rotation.x = -Math.PI / 2;
+                    mesh.position.set(x * tileSize, 0, y * tileSize);
+
+                    textureLoader.load(
+                        url,
+                        (tex) => {
+                            tex.colorSpace = THREE.SRGBColorSpace;
+                            mesh.material.map = tex;
+                            mesh.material.needsUpdate = true;
+                            new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
+                            tilesLoaded++;
+                            if (tilesLoaded === 1) ui.loading.style.display = 'none';
+                        },
+                        undefined,
+                        () => {
+                            if (TILE.source === 'osm') {
+                                const fallbackUrl = getGaodeTileURL(tileX, tileY, zoom);
+                                textureLoader.load(
+                                    fallbackUrl,
+                                    (tex2) => {
+                                        tex2.colorSpace = THREE.SRGBColorSpace;
+                                        mesh.material.map = tex2;
+                                        mesh.material.needsUpdate = true;
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
+                                        tilesLoaded++;
+                                        if (tilesLoaded === 1) ui.loading.style.display = 'none';
+                                    },
+                                    undefined,
+                                    () => {
+                                        const errTex = createErrorTileTexture();
+                                        mesh.material.map = errTex;
+                                        mesh.material.needsUpdate = true;
+                                        new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
+                                    }
+                                );
+                            } else {
+                                const errTex = createErrorTileTexture();
+                                mesh.material.map = errTex;
+                                mesh.material.needsUpdate = true;
+                                new TWEEN.Tween(mesh.material).to({ opacity: 0.85 }, 500).delay(Math.random() * 300).start();
+                            }
+                        }
+                    );
+                    tileGroup.add(mesh);
+                }
+            }
+
+            // remove procedural city pillars and center tower in GIS mode
+            createFocusMarker();
+
+            animateCamera(new THREE.Vector3(0, 40, 50), new THREE.Vector3(0, 5, 0));
+            setTimeout(() => {
+                if (tilesLoaded === 0) {
+                    ui.loadingText.innerText = "高清影像加载失败，请稍后再试";
+                    setTimeout(() => { ui.loading.style.display = 'none'; }, 1200);
+                }
+            }, 5000);
+        }
+
+        function createProceduralCity(range, tileSize) {
+            const count = 300;
+            const areaSize = (range * 2 + 1) * tileSize;
+
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            geometry.translate(0, 0.5, 0);
+
+            const material = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0.1,
+                roughness: 0.1,
+                transparent: true,
+                opacity: 0.5,
+                transmission: 0.3
+            });
+
+            const mesh = new THREE.InstancedMesh(geometry, material, count);
+            const dummy = new THREE.Object3D();
+
+            const edgesGeo = new THREE.EdgesGeometry(geometry);
+            const edgesMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+            const edgeGroup = new THREE.Group();
+
+            for (let i = 0; i < count; i++) {
+                let x = (Math.random() - 0.5) * areaSize * 0.9;
+                let z = (Math.random() - 0.5) * areaSize * 0.9;
+
+                if (Math.abs(x) < 8 && Math.abs(z) < 8) {
+                    if (x > 0) x += 8; else x -= 8;
+                    if (z > 0) z += 8; else z -= 8;
+                }
+
+                const h = Math.random() * Math.random() * 15 + 2;
+                const w = Math.random() * 2 + 1.5;
+                const d = Math.random() * 2 + 1.5;
+
+                dummy.position.set(x, 0, z);
+                dummy.scale.set(w, h, d);
+                dummy.updateMatrix();
+                mesh.setMatrixAt(i, dummy.matrix);
+
+                if (h > 8) {
+                    const edge = new THREE.LineSegments(edgesGeo, edgesMat);
+                    edge.position.copy(dummy.position);
+                    edge.scale.copy(dummy.scale);
+                    edgeGroup.add(edge);
+                }
+            }
+
+            mesh.instanceMatrix.needsUpdate = true;
+            tileGroup.add(mesh);
+            tileGroup.add(edgeGroup);
+        }
+
+        function createFocusMarker() {
+            const ringGeo = new THREE.RingGeometry(1.8, 2.0, 64);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = -Math.PI / 2;
+            ring.position.y = 0.1;
+            tileGroup.add(ring);
+
+            const size = 1.0;
+            const crossGeo = new THREE.BufferGeometry();
+            const vertices = new Float32Array([ -size, 0, 0,  size, 0, 0,  0, 0, -size,  0, 0, size ]);
+            crossGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            const crossMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
+            const cross = new THREE.LineSegments(crossGeo, crossMat);
+            cross.position.y = 0.15;
+            tileGroup.add(cross);
+
+            const coneGeo = new THREE.ConeGeometry(0.5, 2, 4);
+            const coneMat = new THREE.MeshPhongMaterial({ color: 0x00ffff, emissive: 0x0055aa, flatShading: true, transparent: true, opacity: 0.9 });
+            const cone = new THREE.Mesh(coneGeo, coneMat);
+            cone.position.y = 4;
+            cone.rotation.x = Math.PI;
+            tileGroup.add(cone);
+
+            radarMesh = cone;
+        }
+
+        function exitGISMode() {
+            if (STATE.viewMode !== 'GIS') return;
+            STATE.viewMode = 'VECTOR';
+            ui.gisTag.style.display = 'none';
+            ui.gisVisitBtn.style.display = 'none';
+            tileGroup.visible = false;
+            if (window.__osmAttrib) window.__osmAttrib.style.display = 'none';
+
+            renderer.toneMappingExposure = 1.3;
+            bloomPass.strength = CONFIG.bloomStrength;
+            bloomPass.threshold = 0.2;
+            bloomPass.radius = CONFIG.bloomRadius;
+            matTop.emissiveIntensity = 1.0;
+            matHover.emissiveIntensity = 1.5;
+            new TWEEN.Tween(globalAmbientLight).to({ intensity: 0.6 }, 800).start();
+            new TWEEN.Tween(scene.fog).to({ density: 0.0015 }, 800).start();
+
+            mapGroup.visible = true;
+            new TWEEN.Tween(mapGroup.scale).to({ x: 1, y: 1, z: 1 }, 500).start();
+            markersGroup.visible = true;
+            new TWEEN.Tween(markersGroup.scale).to({ x: 1, y: 1, z: 1 }, 500).start();
+            const monitorBtn = document.getElementById('monitor-btn');
+            if (monitorBtn) monitorBtn.style.display = 'none';
+            if (ui.headerTitle) ui.headerTitle.innerText = DEFAULT_TITLE;
+        }
+
+        function onPointerDown(event) {
+            if (STATE.isDrilling) return;
+
+            raycaster.setFromCamera(pointer, camera);
+
+            const markerHits = raycaster.intersectObjects(markersGroup.children, true);
+            if (markerHits.length > 0) {
+                if (STATE.hoveredObj) {
+                    STATE.hoveredObj.material = matTop;
+                    new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                    STATE.hoveredObj = null;
+                }
+                let target = markerHits[0].object;
+                while (target.parent && target.parent !== markersGroup) target = target.parent;
+                if (target.userData.isMarker) openProjectCard(target.userData.data);
+                return;
+            }
+
+            if (STATE.viewMode === 'GIS' || IS_MOBILE) return;
+
+            const mapHits = raycaster.intersectObjects(mapGroup.children, true);
+            if (mapHits.length > 0) {
+                let hit = mapHits.find(obj => obj.object.userData.isRegion);
+                if (hit) {
+                    const data = hit.object.userData;
+                    const adc = String(data.adcode || '');
+                    if (!adc) return;
+                    const currentIsNational = String(STATE.currentAdcode) === '100000';
+                    const currentIsProvince = /^[0-9]{6}$/.test(String(STATE.currentAdcode)) && String(STATE.currentAdcode).endsWith('0000');
+                    if (currentIsNational || currentIsProvince) {
+                        STATE.history.push({ adcode: STATE.currentAdcode });
+                        loadMapData(adc, data.name);
+                    }
+                }
+            }
+        }
+
+        function onPointerMove(event) {
+            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            if (STATE.viewMode === 'GIS') return;
+
+            raycaster.setFromCamera(pointer, camera);
+
+            const markerHits = raycaster.intersectObjects(markersGroup.children, true);
+            if (markerHits.length > 0) { document.body.style.cursor = 'pointer'; return; }
+
+            const mapHits = raycaster.intersectObjects(mapGroup.children, true);
+            let hitRegion = null;
+            if (mapHits.length > 0) {
+                let hit = mapHits.find(obj => obj.object.userData.isRegion);
+                if (hit) hitRegion = hit.object;
+            }
+
+            if (hitRegion) {
+                if (hoverReleaseTimer) { clearTimeout(hoverReleaseTimer); hoverReleaseTimer = null; }
+                if (STATE.hoveredObj !== hitRegion) {
+                    if (STATE.hoveredObj) {
+                        STATE.hoveredObj.material = matTop;
+                        new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                    }
+                    STATE.hoveredObj = hitRegion;
+                    hitRegion.material = matHover;
+                    new TWEEN.Tween(hitRegion.position).to({ z: 0.8 }, 250).easing(TWEEN.Easing.Cubic.Out).start();
+
+                    ui.tooltip.style.display = 'block';
+                    ui.tooltip.innerText = hitRegion.userData.name;
+                }
+                ui.tooltip.style.left = (event.clientX + 15) + 'px';
+                ui.tooltip.style.top = (event.clientY + 15) + 'px';
+                document.body.style.cursor = 'pointer';
+            } else {
+                if (STATE.hoveredObj) {
+                    STATE.hoveredObj.material = matTop;
+                    new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 200).easing(TWEEN.Easing.Cubic.Out).start();
+                    STATE.hoveredObj = null;
+                }
+                if (!hoverReleaseTimer) {
+                    hoverReleaseTimer = setTimeout(() => {
+                        if (STATE.hoveredObj) {
+                            STATE.hoveredObj.material = matTop;
+                            new TWEEN.Tween(STATE.hoveredObj.position).to({ z: 0 }, 150).easing(TWEEN.Easing.Cubic.Out).start();
+                            STATE.hoveredObj = null;
+                        }
+                        hoverReleaseTimer = null;
+                    }, 500);
+                }
+                ui.tooltip.style.display = 'none';
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        function openProjectCard(data) {
+            STATE.selectedProject = data;
+            updateCardContent(data);
+            ui.card.style.display = 'block';
+            setTimeout(() => { document.getElementById('card-progress-bar').style.width = data.progress + '%'; }, 100);
+        }
+
+        // 修改：处理大屏监控按钮点击逻辑
+        function visitProjectWebsite() {
+            if (STATE.selectedProject && STATE.selectedProject.id === 'p4') {
+                window.location.href = 'suzhou_center_dashboard.html';
+            } else if (STATE.selectedProject && STATE.selectedProject.id === 'p2') {
+                window.location.href = 'yangzhou-railway-command-center.html';
+            } else if (STATE.selectedProject && STATE.selectedProject.id === 'p3') {
+                // 针对温州项目 (p3)，不再跳转，而是打开Iframe弹窗
+                openSmartGarageMonitor();
+            } else if (STATE.selectedProject && STATE.selectedProject.id === 'p6') {
+                 // 新增合川东隧道 p6 - 跳转到同目录下的 xiyu.html
+                 window.location.href = 'xiyu.html';
+            } else {
+                window.location.href = 'https://www.google.com';
+            }
+        }
+        window.openMonitorPlatform = function () {
+            if (!STATE.selectedProject) return;
+            var id = STATE.selectedProject.id;
+            var url = PROJECT_URLS[id];
+            if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+        };
+
+        // 新增：温州项目智慧车库监控弹窗逻辑
+        function openSmartGarageMonitor() {
+            // 1. 显示 Modal
+            ui.iframeModal.style.display = 'flex';
+            
+            // 2. 清理旧内容并显示 Loading
+            const contentDiv = ui.iframeContent;
+            // 保留 loader 元素，移除其他内容（如旧的 iframe）
+            Array.from(contentDiv.children).forEach(child => {
+                if (child.id !== 'iframe-loader') {
+                    contentDiv.removeChild(child);
+                }
+            });
+            ui.iframeLoader.style.display = 'flex';
+            ui.iframeTitle.innerText = "正在连接驾驶舱后端...";
+
+            // 3. 模拟调用驾驶舱后端接口获取权限
+            mockFetchPermission(STATE.selectedProject.id)
+                .then(response => {
+                    if (response.hasPermission) {
+                        // 4a. 有权限：渲染 Iframe
+                        ui.iframeTitle.innerText = `大屏监控 - ${STATE.selectedProject.name}`;
+                        
+                        const iframe = document.createElement('iframe');
+                        iframe.id = 'fine-report-frame';
+                        // 使用占位符链接，实际开发中替换为 response.url
+                        iframe.src = FINE_REPORT_URLS[STATE.selectedProject.id] || FINE_REPORT_URL_DEFAULT; 
+                        
+                        // Iframe 加载完毕后隐藏 loader
+                        iframe.onload = () => {
+                            ui.iframeLoader.style.display = 'none';
+                        };
+                        
+                        contentDiv.appendChild(iframe);
+                        
+                    } else {
+                        // 4b. 无权限：显示提示
+                        ui.iframeLoader.style.display = 'none';
+                        const msg = document.createElement('div');
+                        msg.className = 'permission-denied';
+                        msg.innerText = "抱歉，您当前账户无访问此监控页面的权限。";
+                        contentDiv.appendChild(msg);
+                    }
+                })
+                .catch(err => {
+                    console.error("Permission check failed", err);
+                    ui.iframeLoader.style.display = 'none';
+                    const msg = document.createElement('div');
+                    msg.className = 'permission-denied';
+                    msg.innerText = "连接后端服务失败，请稍后重试。";
+                    contentDiv.appendChild(msg);
+                });
+        }
+
+        // 模拟后端权限检查接口
+        function mockFetchPermission(projectId) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // 模拟：假设总是有权限，且返回了配置好的帆软URL
+                    // 在实际对接中，这里会是 fetch('/api/checkAuth?proj=' + projectId)
+                    resolve({
+                        hasPermission: true,
+                        // url: 'https://fanruan-server.com/...' // 实际返回的URL
+                    });
+                }, 1500); // 模拟网络延迟
+            });
+        }
+
+        function closeIframeModal() {
+            ui.iframeModal.style.display = 'none';
+            // 清理 iframe 以停止资源占用和声音播放
+            const contentDiv = ui.iframeContent;
+            Array.from(contentDiv.children).forEach(child => {
+                if (child.id !== 'iframe-loader') {
+                    contentDiv.removeChild(child);
+                }
+            });
+        }
+
+        function closeProjectCard() { ui.card.style.display = 'none'; document.getElementById('card-progress-bar').style.width = '0%'; }
+        function goBack() {
+            if (STATE.viewMode === 'GIS') { exitGISMode(); return; }
+            if (STATE.history.length > 0) {
+                const prev = STATE.history.pop();
+                loadMapData(prev.adcode, "区域");
+            }
+        }
+        function updateClock() { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }
+        function lon2tile(lon, zoom) { return (Math.floor((lon + 180) / 360 * Math.pow(2, zoom))); }
+        function lat2tile(lat, zoom) { return (Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom))); }
+        function animateCamera(pos, target) {
+            new TWEEN.Tween(camera.position).to(pos, 1200).easing(TWEEN.Easing.Cubic.InOut).start();
+            new TWEEN.Tween(controls.target).to(target, 1200).easing(TWEEN.Easing.Cubic.InOut).start();
+        }
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight); }
+
+        function animate(time) {
+            requestAnimationFrame(animate);
+            TWEEN.update(time);
+            controls.update();
+
+            if (STATE.viewMode === 'GIS' && radarMesh) {
+                const t = time / 1000;
+                radarMesh.position.y = 4 + Math.sin(t * 3) * 0.5;
+                radarMesh.rotation.y = t;
+            }
+
+            composer.render();
+        }
+// --- 暴露到全局（供 HTML onclick 调用）---
+window.goBack = goBack;
+window.enterSiteMode = enterSiteMode;
+window.visitProjectWebsite = visitProjectWebsite;
+window.closeProjectCard = closeProjectCard;
+window.closeIframeModal = closeIframeModal;
