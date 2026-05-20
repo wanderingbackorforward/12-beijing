@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>城市大型基础设施暗挖建造云平台</title>
+    <script src="config.js"></script>
         <style>
         /* 全局字体与背景 */
         body {
@@ -786,9 +787,6 @@
             document.body.classList.toggle('mobile', IS_MOBILE);
         });
 
-        // 帆软报表链接占位符 (链接暂未生成)
-        const FINE_REPORT_URL_PLACEHOLDER = 'https://dv.tongji.edu.cn/decision/v10/entry/access/13d26456-f1d6-4a56-bcdd-f1cd328dc465?preview=true&page_number=1'; 
-
         const CONFIG = {
             bgColor: 0x000510,
             fogColor: 0x000510,
@@ -844,21 +842,7 @@
             return tex;
         }
 
-        /*
-           【修改说明】
-           此处是修改地图上具体项目数据（数字）的地方
-           修改 investment, progress 等字段
-           已添加：p6 西渝高铁合川东隧道
-        */
-        const PROJECTS = [
-            { id: 'p4', name: "通苏嘉甬苏州东隧道", location: "江苏苏州", lat: 31.3200, lng: 120.7200, investment: "11.81 km", progress: 75, status: "盾构掘进", provinceCode: 320000, cityCode: 320500 },
-            { id: 'p2', name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
-            { id: 'p6', name: "西渝高铁合川东隧道", location: "重庆合川", lat: 30.2625, lng: 106.2247, investment: "7.39 km", progress: 35, status: "施工中", provinceCode: 500000, cityCode: 500117 },
-            { id: 'p1', name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
-            { id: 'p3', name: "温州茶白片区EUP竖井智慧车库", location: "浙江温州", lat: 27.9943, lng: 120.6994, investment: "深 65.92m", progress: 42, status: "基坑开挖", provinceCode: 330000, cityCode: 330300 },
-            { id: 'p5', name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 }
-        ];
-
+        
         const STATE = {
             currentAdcode: 100000,
             viewMode: 'VECTOR',
@@ -1656,11 +1640,10 @@
         }
         window.openMonitorPlatform = function () {
             if (!STATE.selectedProject) return;
-            const id = STATE.selectedProject.id;
-            if (id === 'p2') {
-                window.open('http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex','_blank','noopener,noreferrer');
-            } else if (id === 'p4') {
-                window.open('https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw','_blank','noopener,noreferrer');
+            var id = STATE.selectedProject.id;
+            var url = PROJECT_URLS[id];
+            if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer');
             }
         };
 
@@ -1690,7 +1673,7 @@
                         const iframe = document.createElement('iframe');
                         iframe.id = 'fine-report-frame';
                         // 使用占位符链接，实际开发中替换为 response.url
-                        iframe.src = FINE_REPORT_URL_PLACEHOLDER; 
+                        iframe.src = FINE_REPORT_URLS[STATE.selectedProject.id] || FINE_REPORT_URL_DEFAULT; 
                         
                         // Iframe 加载完毕后隐藏 loader
                         iframe.onload = () => {
