@@ -15,8 +15,8 @@ var PROJECTS = [
 
 // --- 各工程监控平台链接 ---
 var PROJECT_URLS = {
-    p2: "http://120.55.70.218/md/nycj/",
-    p4: "http://120.55.70.218/tsjy/"
+    p2: "https://smartinfracloud.top/md/nycj/",
+    p4: "https://smartinfracloud.top/tsjy/"
 };
 
 // --- 帆软报表链接 (iframe 弹窗用) ---
