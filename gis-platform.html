@@ -4,9 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>城市大型地下基础设施智能暗挖建造云平台</title>
-        <style>
-        /* 全局字体与背景 */
+    <title>城市大型基础设施暗挖建造云平台</title>
+    <style>
+/* 全局字体与背景 */
         body {
             margin: 0;
             overflow: hidden;
@@ -678,16 +678,16 @@
                 font-size: 12px;
             }
         }
-        </style>
+    </style>
 </head>
 
 <body>
 
     <div id="header">
-        <div class="header-title">城市大型地下基础设施智能暗挖建造云平台</div>
+        <div class="header-title">城市大型基础设施暗挖建造云平台</div>
         <div class="header-info">
             <div class="time-display" id="clock">12:00:00</div>
-            <div>系统状态：在线运行</div>
+            <div>系统状态：运行正常</div>
         </div>
     </div>
 
@@ -705,18 +705,18 @@
     </div>
 
     <button id="back-btn" onclick="goBack()">返回上一级</button>
-    <button id="gis-visit-btn" onclick="visitProjectWebsite()">大屏监控</button>
+    <button id="gis-visit-btn" onclick="visitProjectWebsite()">访问官网</button>
     <button id="monitor-btn" onclick="openMonitorPlatform()">监控平台</button>
 
     <div id="loading">
         <div class="spinner"></div>
-        <div id="loading-text">系统初始化中...</div>
+        <div id="loading-text">系统初始化...</div>
     </div>
 
     <div id="project-card">
         <div class="card-header">
             <h3 id="card-title">工程名称</h3>
-            <span id="close-card" onclick="closeProjectCard()">×</span>
+            <span id="close-card" onclick="closeProjectCard()">✕</span>
         </div>
         <div class="card-body">
             <div class="info-item">
@@ -728,7 +728,7 @@
                 <span class="info-content" id="card-location">位置信息</span>
             </div>
             <div class="info-item">
-                <span class="info-label">工程规模/深度</span>
+                <span class="info-label">工程规模/投资</span>
                 <span class="info-content" id="card-invest">--</span>
             </div>
             <div class="info-item">
@@ -737,44 +737,72 @@
                     <div class="progress-fill" id="card-progress-bar"></div>
                 </div>
             </div>
-            <button id="enter-site-btn" onclick="enterSiteMode()">进入卫星实景视图</button>
-            <button id="visit-site-btn" onclick="visitProjectWebsite()">大屏监控</button>
+            <button id="enter-site-btn" onclick="enterSiteMode()">进入主场区实景视图</button>
+            <button id="visit-site-btn" onclick="visitProjectWebsite()">访问官网</button>
         </div>
     </div>
 
     <div id="tooltip">信息</div>
-    <div id="gis-tag">实时卫星信号已连接 | 高清全彩影像</div>
+    <div id="gis-tag">实时地下信号与数据 | 土木全国影响</div>
 
     <div id="canvas-container"></div>
 
-    <!-- Iframe Modal Structure -->
     <div id="iframe-modal">
         <div class="iframe-container">
             <div class="iframe-header">
-                <span id="iframe-modal-title">智慧车库大屏监控</span>
-                <button class="close-iframe-btn" onclick="closeIframeModal()">×</button>
+                <span id="iframe-modal-title">智慧车库监控</span>
+                <button class="close-iframe-btn" onclick="closeIframeModal()">✕</button>
             </div>
             <div id="iframe-content">
                 <div id="iframe-loader" class="iframe-loader" style="display:none;">
                     <div class="spinner" style="width:30px;height:30px;border-width:2px;"></div>
-                    <div>正在获取权限并加载数据...</div>
+                    <div>正在获取权限并加载面板...</div>
                 </div>
-                <!-- iframe will be injected here -->
             </div>
         </div>
     </div>
 
-    <script type="importmap">
+<script>
+// ============================================================
+//  示范工程配置文件
+//  修改此文件即可增删工程、修改域名/监控链接
+// ============================================================
+
+// --- 示范工程列表 ---
+var PROJECTS = [
+    { id: "p4", name: "通苏嘉甬苏州东隧道", location: "江苏苏州", lat: 31.3200, lng: 120.7200, investment: "11.81 km", progress: 75, status: "盾构掘进", provinceCode: 320000, cityCode: 320500 },
+    { id: "p2", name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
+    { id: "p6", name: "西渝高铁合川东隧道", location: "重庆合川", lat: 30.2625, lng: 106.2247, investment: "7.39 km", progress: 35, status: "施工中", provinceCode: 500000, cityCode: 500117 },
+    { id: "p1", name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
+    { id: "p3", name: "温州茶白片区EUP竖井智慧车库", location: "浙江温州", lat: 27.9943, lng: 120.6994, investment: "深 65.92m", progress: 42, status: "基坑开挖", provinceCode: 330000, cityCode: 330300 },
+    { id: "p5", name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 },
+    { id: "p7", name: "城市暗挖管控系统", location: "山东济南", lat: 36.65, lng: 117.12, investment: "×× km", progress: 40, status: "施工中", provinceCode: 370000, cityCode: 370100 },
+
+];
+
+// --- 各工程监控平台链接 ---
+var PROJECT_URLS = {
+    p2: "https://smartinfracloud.top/md/nycj/",
+    p4: "https://smartinfracloud.top/tsjy/"
+};
+
+// --- 帆软报表链接 (iframe 弹窗用) ---
+var FINE_REPORT_URLS = {
+};
+
+var FINE_REPORT_URL_DEFAULT = "https://dv.tongji.edu.cn/decision/v10/entry/access/13d26456-f1d6-4a56-bcdd-f1cd328dc465?preview=true&page_number=1";
+
+</script>
+<script type="importmap">
         {
             "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+                "three": "./vendor/three/build/three.module.js",
+                "three/addons/": "./vendor/three/examples/jsm/"
             }
         }
     </script>
-
-        <script type="module">
-            import * as THREE from 'three';
+<script type="module">
+import * as THREE from 'three';
             import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
             import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
             import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -785,9 +813,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             document.body.classList.toggle('mobile', IS_MOBILE);
         });
-
-        // 帆软报表链接占位符 (链接暂未生成)
-        const FINE_REPORT_URL_PLACEHOLDER = 'https://dv.tongji.edu.cn/decision/v10/entry/access/13d26456-f1d6-4a56-bcdd-f1cd328dc465?preview=true&page_number=1'; 
 
         const CONFIG = {
             bgColor: 0x000510,
@@ -844,21 +869,7 @@
             return tex;
         }
 
-        /*
-           【修改说明】
-           此处是修改地图上具体项目数据（数字）的地方
-           修改 investment, progress 等字段
-           已添加：p6 西渝高铁合川东隧道
-        */
-        const PROJECTS = [
-            { id: 'p4', name: "通苏嘉甬苏州东隧道", location: "江苏苏州", lat: 31.3200, lng: 120.7200, investment: "11.81 km", progress: 75, status: "盾构掘进", provinceCode: 320000, cityCode: 320500 },
-            { id: 'p2', name: "扬州至仪征线市域铁路一/二/六期", location: "江苏扬州", lat: 32.3942, lng: 119.4129, investment: "14.38 km", progress: 65, status: "施工中", provinceCode: 320000, cityCode: 321000 },
-            { id: 'p6', name: "西渝高铁合川东隧道", location: "重庆合川", lat: 30.2625, lng: 106.2247, investment: "7.39 km", progress: 35, status: "施工中", provinceCode: 500000, cityCode: 500117 },
-            { id: 'p1', name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
-            { id: 'p3', name: "温州茶白片区EUP竖井智慧车库", location: "浙江温州", lat: 27.9943, lng: 120.6994, investment: "深 65.92m", progress: 42, status: "基坑开挖", provinceCode: 330000, cityCode: 330300 },
-            { id: 'p5', name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 }
-        ];
-
+        
         const STATE = {
             currentAdcode: 100000,
             viewMode: 'VECTOR',
@@ -894,7 +905,7 @@
             iframeLoader: document.getElementById('iframe-loader'),
             iframeTitle: document.getElementById('iframe-modal-title')
         };
-        const DEFAULT_TITLE = '城市大型地下基础设施智能暗挖建造云平台';
+        const DEFAULT_TITLE = '城市大型基础设施暗挖建造云平台';
 
         window.goBack = goBack;
         window.closeProjectCard = closeProjectCard;
@@ -1211,9 +1222,8 @@
             renderMarkers(center, STATE.currentAdcode);
 
             const maxDim = Math.max(size.x, size.y);
+            const dist = maxDim * 1.1;
             const national = String(adcode) === '100000';
-            const distFactor = national ? 0.88 : 1.1;
-            const dist = maxDim * distFactor;
             
             // --- 【修改处】 ---
             // 之前的错误：只移动了 tgt.x，导致相机斜视。
@@ -1279,7 +1289,7 @@
                 const g = new THREE.Group();
                 g.position.set(x, 1.0, -y);
                 const isNational = (cur === '100000');
-                const markerScale = isNational ? 2.5 : 1.0;
+                const markerScale = isNational ? 1.25 : 1.0;
                 g.scale.set(markerScale, markerScale, markerScale);
 
                 const cone = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.7, 4), matMarker);
@@ -1314,7 +1324,7 @@
             ui.backBtn.style.display = 'block';
             
             // "大屏监控"按钮显示逻辑 (保留 p3, p2, p4) + p6
-            const allowVisit = new Set(['p2','p3','p4','p6']);
+            const allowVisit = new Set(['p2','p3','p4','p6','p7']);
             ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
             
             // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
@@ -1641,6 +1651,7 @@
 
         // 修改：处理大屏监控按钮点击逻辑
         function visitProjectWebsite() {
+ 	console.log(STATE)
             if (STATE.selectedProject && STATE.selectedProject.id === 'p4') {
                 window.location.href = 'suzhou_center_dashboard.html';
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p2') {
@@ -1651,17 +1662,19 @@
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p6') {
                  // 新增合川东隧道 p6 - 跳转到同目录下的 xiyu.html
                  window.location.href = 'xiyu.html';
-            } else {
+            }else if ( STATE.selectedProject && STATE.selectedProject.id === 'p7') {
+	 
+		 window.location.href = 'sdu-csawgk.html'; 
+	   } else {
                 window.location.href = 'https://www.google.com';
             }
         }
         window.openMonitorPlatform = function () {
             if (!STATE.selectedProject) return;
-            const id = STATE.selectedProject.id;
-            if (id === 'p2') {
-                window.open('http://yz.yangzhoumetro.com:16000/login?redirect=%2Findex','_blank','noopener,noreferrer');
-            } else if (id === 'p4') {
-                window.open('https://shield.dadungou.com:9001/shieldMachine/projectaSurvey?token=eyJhbGciOiJIUzUxMiJ9.eyJ1c2VyX2lkIjozOTY4LCJ1c2VyX2tleSI6IjhlYzFjZmQzLWQyZmQtNGZjNi04NjIyLWJkNTg5Nzc1Y2Q3OSIsInRlbmFudC1pZCI6MTAwNjksInVzZXJuYW1lIjoi6YCa6IuP5ZiJ55Ss6aG555uuIn0.ctyvRhfw8tJ8hXNVXMJ35WKPWVUsM37QJ8cvkqc9KiHB3S2VfkkoFbdpVSIY0q1oo7gCO8SWkp8VEU-J9Q0lbw','_blank','noopener,noreferrer');
+            var id = STATE.selectedProject.id;
+            var url = PROJECT_URLS[id];
+            if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer');
             }
         };
 
@@ -1691,7 +1704,7 @@
                         const iframe = document.createElement('iframe');
                         iframe.id = 'fine-report-frame';
                         // 使用占位符链接，实际开发中替换为 response.url
-                        iframe.src = FINE_REPORT_URL_PLACEHOLDER; 
+                        iframe.src = FINE_REPORT_URLS[STATE.selectedProject.id] || FINE_REPORT_URL_DEFAULT; 
                         
                         // Iframe 加载完毕后隐藏 loader
                         iframe.onload = () => {
@@ -1774,7 +1787,15 @@
 
             composer.render();
         }
-    </script>
+// --- 暴露到全局（供 HTML onclick 调用）---
+window.goBack = goBack;
+window.enterSiteMode = enterSiteMode;
+window.visitProjectWebsite = visitProjectWebsite;
+window.closeProjectCard = closeProjectCard;
+window.closeIframeModal = closeIframeModal;
+
+</script>
+
 </body>
 
 </html>

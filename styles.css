@@ -1,0 +1,672 @@
+/* 全局字体与背景 */
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000510;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* --- 顶部 HUD 标题栏 --- */
+        #header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 80px;
+            background: linear-gradient(to bottom, rgba(0, 20, 50, 0.9), transparent);
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            box-sizing: border-box;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            pointer-events: none;
+        }
+
+        .header-title {
+            font-size: 32px;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ffff;
+            letter-spacing: 2px;
+            font-style: italic;
+        }
+
+        .header-info {
+            font-size: 14px;
+            color: #00ffff;
+            text-align: right;
+        }
+
+        .time-display {
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            color: #ffaa00;
+            font-weight: bold;
+            text-shadow: 0 0 5px #ffaa00;
+        }
+
+        /* --- 左侧数据面板 --- */
+        #left-panel {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            width: 340px;
+            background: rgba(0, 10, 25, 0.85);
+            border: 1px solid #005588;
+            box-shadow: inset 0 0 20px rgba(0, 100, 255, 0.2);
+            padding: 20px;
+            color: #fff;
+            pointer-events: none;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+
+        /* --- 左侧快速直达面板 --- */
+        #quick-nav-panel {
+            position: absolute;
+            top: 420px;
+            left: 20px;
+            width: 340px;
+            background: rgba(0, 10, 25, 0.85);
+            border: 1px solid #005588;
+            box-shadow: inset 0 0 20px rgba(0, 100, 255, 0.2);
+            padding: 20px;
+            color: #fff;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        .panel-title {
+            color: #00ffff;
+            font-size: 20px;
+            border-left: 5px solid #00ffff;
+            padding-left: 12px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), transparent);
+        }
+
+        /* 【修改说明】
+           此处是修改左侧面板静态数字的地方
+           已更新：示范工程 6，总里程 38.53 km
+        */
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 16px;
+            color: #aaddff;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+            padding-bottom: 6px;
+        }
+
+        .data-val {
+            color: #ffaa00;
+            font-weight: bold;
+        }
+
+        /* 快速导航按钮样式 */
+        .quick-btn {
+            display: block;
+            width: 100%;
+            padding: 10px 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 50, 100, 0.4);
+            border: 1px solid #0077aa;
+            color: #00ffff;
+            font-size: 15px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            box-sizing: border-box;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .quick-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            border-color: #00ffff;
+            padding-left: 18px;
+        }
+
+        .quick-btn::before {
+            content: '►';
+            margin-right: 10px;
+            font-size: 12px;
+            color: #ffaa00;
+        }
+
+        /* --- 右侧工程详情卡片 --- */
+        #project-card {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 360px;
+            background: rgba(0, 15, 30, 0.9);
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.15), inset 0 0 20px rgba(0, 100, 255, 0.1);
+            padding: 0;
+            color: #fff;
+            display: none;
+            backdrop-filter: blur(10px);
+            z-index: 20;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%);
+        }
+
+        .card-header {
+            background: rgba(0, 100, 200, 0.3);
+            padding: 15px 20px;
+            border-bottom: 1px solid #00ffff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #fff;
+            text-shadow: 0 0 5px #00ffff;
+            line-height: 1.2;
+        }
+
+        #close-card {
+            cursor: pointer;
+            color: #00ffff;
+            font-size: 24px;
+            line-height: 20px;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            display: block;
+            color: #0088ff;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+
+        .info-content {
+            font-size: 16px;
+            color: #fff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: rgba(255, 170, 0, 0.2);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            font-size: 12px;
+            border-radius: 2px;
+        }
+
+        .progress-track {
+            height: 6px;
+            background: #112233;
+            margin-top: 5px;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #00ff00);
+            width: 0%;
+            box-shadow: 0 0 10px #00ff00;
+            transition: width 1s;
+        }
+
+        #enter-site-btn {
+            width: 100%;
+            background: linear-gradient(90deg, rgba(0, 255, 255, 0.1), rgba(0, 255, 255, 0.3));
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            padding: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #enter-site-btn:hover {
+            background: #00ffff;
+            color: #000;
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        #visit-site-btn {
+            width: 100%;
+            background: linear-gradient(90deg, rgba(255, 170, 0, 0.1), rgba(255, 170, 0, 0.3));
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 12px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #visit-site-btn:hover {
+            background: #ffaa00;
+            color: #000;
+            box-shadow: 0 0 20px #ffaa00;
+        }
+
+        /* --- Loading & Tooltip --- */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 18px;
+            text-align: center;
+            z-index: 100;
+            text-shadow: 0 0 10px #00ffff;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid transparent;
+            border-top: 3px solid #00ffff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            padding: 8px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            display: none;
+            z-index: 50;
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.4);
+            transform: translate(20px, 20px);
+        }
+
+        #back-btn {
+            position: absolute;
+            top: 100px;
+            right: 40px;
+            padding: 8px 25px;
+            background: rgba(0, 50, 100, 0.8);
+            border: 1px solid #00ffff;
+            color: #00ffff;
+            cursor: pointer;
+            z-index: 50;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+
+        #back-btn:hover {
+            background: rgba(0, 255, 255, 0.3);
+        }
+
+        #gis-visit-btn {
+            position: absolute;
+            top: 150px;
+            right: 40px;
+            padding: 8px 25px;
+            background: rgba(255, 170, 0, 0.2);
+            border: 1px solid #ffaa00;
+            color: #ffaa00;
+            cursor: pointer;
+            z-index: 50;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 170, 0, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        #gis-visit-btn:hover {
+            background: #ffaa00;
+            color: #000;
+            box-shadow: 0 0 20px #ffaa00;
+        }
+
+        /* 监控平台按钮 */
+        #monitor-btn {
+            position: absolute;
+            top: 200px;
+            right: 40px;
+            padding: 8px 25px;
+            background: rgba(0, 200, 100, 0.2);
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            cursor: pointer;
+            z-index: 50;
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+
+        #monitor-btn:hover {
+            background: #00ff88;
+            color: #000;
+            box-shadow: 0 0 20px #00ff88;
+        }
+
+        #gis-tag {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 5px 20px;
+            background: rgba(0, 20, 0, 0.8);
+            display: none;
+            font-weight: bold;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.4);
+            pointer-events: none;
+        }
+
+        /* Iframe Modal Styles */
+        #iframe-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        .iframe-container {
+            width: 90%;
+            height: 90%;
+            background: rgba(0, 15, 30, 0.95);
+            border: 1px solid #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            border-radius: 4px;
+        }
+        .iframe-header {
+            height: 50px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+            background: rgba(0, 50, 100, 0.3);
+        }
+        .iframe-header span {
+            color: #00ffff;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 0 0 5px #00ffff;
+        }
+        .close-iframe-btn {
+            background: none;
+            border: none;
+            color: #00ffff;
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+        }
+        .close-iframe-btn:hover {
+            color: #fff;
+            text-shadow: 0 0 10px #fff;
+        }
+        #iframe-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #000;
+        }
+        #fine-report-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #fff; /* 帆软页面通常是白底，这里给个背景防透 */
+        }
+        .permission-denied {
+            color: #ff4444;
+            font-size: 20px;
+            text-align: center;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .iframe-loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ffff;
+            font-size: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ---- Mobile adjustments ---- */
+        .mobile .header-title {
+            font-size: 1.4rem;
+            letter-spacing: 1px;
+        }
+        .mobile #back-btn,
+        .mobile #gis-visit-btn,
+        .mobile #monitor-btn {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+        .mobile .panel-title {
+            font-size: 0.9rem;
+        }
+        .mobile #quick-nav-panel {
+            left: 10px !important;
+            right: 10px !important;
+            width: auto !important;
+        }
+        .mobile #project-card {
+            left: 10px !important;
+            right: 10px !important;
+            width: auto !important;
+        }
+        .mobile .iframe-container {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* ---- Responsive Media Queries ---- */
+        @media (max-width: 1024px) {
+            #header {
+                padding: 0 20px;
+                height: 70px;
+            }
+            .header-title {
+                font-size: 24px;
+            }
+            #left-panel {
+                width: 280px;
+                padding: 15px;
+            }
+            #quick-nav-panel {
+                width: 280px;
+                top: 350px;
+            }
+            #project-card {
+                width: 300px;
+                right: 20px;
+            }
+        #back-btn, #gis-visit-btn, #monitor-btn {
+            right: 20px;
+            padding: 8px 18px;
+            font-size: 13px;
+        }
+        }
+
+        @media (max-width: 768px) {
+            #header {
+                padding: 0 15px;
+                height: 60px;
+                flex-direction: column;
+                align-items: flex-start;
+                justify-content: center;
+                gap: 5px;
+            }
+            .header-title {
+                font-size: 16px;
+                letter-spacing: 1px;
+            }
+            .header-info {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+            }
+            .time-display {
+                font-size: 14px;
+            }
+            .header-info > div:last-child {
+                font-size: 10px;
+            }
+
+            /* Left panels stacked at bottom */
+            #left-panel {
+                display: none; /* Hide on mobile to reduce clutter */
+            }
+            #quick-nav-panel {
+                position: fixed;
+                top: auto;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100% !important;
+                max-height: 35vh;
+                overflow-y: auto;
+                padding: 15px;
+                border-radius: 16px 16px 0 0;
+                z-index: 100;
+            }
+            .quick-btn {
+                padding: 12px;
+                font-size: 14px;
+            }
+            .panel-title {
+                font-size: 16px;
+            }
+
+            /* Project card - full width at center */
+            #project-card {
+                position: fixed;
+                top: 50%;
+                left: 10px !important;
+                right: 10px !important;
+                width: auto !important;
+                transform: translateY(-50%);
+                max-height: 70vh;
+                overflow-y: auto;
+                clip-path: none;
+                border-radius: 12px;
+            }
+
+            /* Buttons repositioned */
+            #back-btn {
+                top: 70px;
+                right: 10px;
+                left: auto;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            #gis-visit-btn {
+                top: 110px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+            #monitor-btn {
+                top: 150px;
+                right: 10px;
+                padding: 8px 15px;
+                font-size: 12px;
+            }
+
+            /* GIS tag */
+            #gis-tag {
+                bottom: 40vh;
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+
+            /* Tooltip */
+            #tooltip {
+                font-size: 12px;
+                padding: 6px 10px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-title {
+                font-size: 14px;
+            }
+            #quick-nav-panel {
+                max-height: 40vh;
+                padding: 12px;
+            }
+            .quick-btn {
+                padding: 10px;
+                font-size: 13px;
+            }
+            #project-card {
+                max-height: 60vh;
+            }
+            .card-header h3 {
+                font-size: 15px;
+            }
+            .info-content {
+                font-size: 14px;
+            }
+            #enter-site-btn, #visit-site-btn {
+                padding: 10px;
+                font-size: 12px;
+            }
+        }
