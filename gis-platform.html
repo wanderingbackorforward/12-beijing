@@ -783,7 +783,8 @@ var PROJECTS = [
 // --- 各工程监控平台链接 ---
 var PROJECT_URLS = {
     p2: "https://smartinfracloud.top/md/nycj/",
-    p4: "https://smartinfracloud.top/tsjy/"
+    p4: "https://smartinfracloud.top/tsjy/",
+    p6: "https://nebula.weidax.com/graphic/pageView/ba29fa15fe5a60e8e82076ca5434cd75/3a0d28ff-d6ac-f356-f80a-662edaf0063c/687f94485b109030b0347e2fdd1afc0d"
 };
 
 // --- 帆软报表链接 (iframe 弹窗用) ---
@@ -1327,8 +1328,8 @@ import * as THREE from 'three';
             const allowVisit = new Set(['p2','p3','p4','p6','p7']);
             ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
             
-            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
-            const allowMonitor = new Set(['p2','p4']);
+            // "监控平台"按钮显示逻辑 (p2 宁扬 / p4 通苏嘉甬 / p6 合川东，与 PROJECT_URLS 对齐)
+            const allowMonitor = new Set(['p2','p4','p6']);
             const monitorBtn = document.getElementById('monitor-btn');
             if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
 
