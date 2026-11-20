@@ -775,13 +775,16 @@ var PROJECTS = [
     { id: "p6", name: "西渝高铁合川东隧道", location: "重庆合川", lat: 30.2625, lng: 106.2247, investment: "7.39 km", progress: 35, status: "施工中", provinceCode: 500000, cityCode: 500117 },
     { id: "p1", name: "上海合流污水一期复线FXZ1.3标", location: "上海市", lat: 31.2304, lng: 121.4737, investment: "4.83 km", progress: 88, status: "方案备案", provinceCode: 310000, cityCode: 310100 },
     { id: "p3", name: "温州茶白片区EUP竖井智慧车库", location: "浙江温州", lat: 27.9943, lng: 120.6994, investment: "深 65.92m", progress: 42, status: "基坑开挖", provinceCode: 330000, cityCode: 330300 },
-    { id: "p5", name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 }
+    { id: "p5", name: "侨城东路北延地下立交示范工程", location: "广东深圳", lat: 22.5500, lng: 114.0500, investment: "57 m", progress: 90, status: "主体结构", provinceCode: 440000, cityCode: 440300 },
+    { id: "p7", name: "城市暗挖管控系统", location: "山东济南", lat: 36.65, lng: 117.12, investment: "×× km", progress: 40, status: "施工中", provinceCode: 370000, cityCode: 370100 },
+
 ];
 
 // --- 各工程监控平台链接 ---
 var PROJECT_URLS = {
     p2: "http://120.55.70.218/md/nycj/",
-    p4: "http://120.55.70.218/tsjy/"
+    p4: "http://120.55.70.218/tsjy/",
+    p6: "https://nebula.weidax.com/graphic/pageView/ba29fa15fe5a60e8e82076ca5434cd75/3a0d28ff-d6ac-f356-f80a-662edaf0063c/687f94485b109030b0347e2fdd1afc0d"
 };
 
 // --- 帆软报表链接 (iframe 弹窗用) ---
@@ -1322,11 +1325,11 @@ import * as THREE from 'three';
             ui.backBtn.style.display = 'block';
             
             // "大屏监控"按钮显示逻辑 (保留 p3, p2, p4) + p6
-            const allowVisit = new Set(['p2','p3','p4','p6']);
+            const allowVisit = new Set(['p2','p3','p4','p6','p7']);
             ui.gisVisitBtn.style.display = allowVisit.has(proj.id) ? 'block' : 'none';
             
-            // "监控平台"按钮显示逻辑 (移除 p3，仅保留 p2, p4) + p6 移除 p6
-            const allowMonitor = new Set(['p2','p4']);
+            // "监控平台"按钮显示逻辑 (p2 宁扬 / p4 通苏嘉甬 / p6 合川东，与 PROJECT_URLS 对齐)
+            const allowMonitor = new Set(['p2','p4','p6']);
             const monitorBtn = document.getElementById('monitor-btn');
             if (monitorBtn) monitorBtn.style.display = allowMonitor.has(proj.id) ? 'block' : 'none';
 
@@ -1649,6 +1652,7 @@ import * as THREE from 'three';
 
         // 修改：处理大屏监控按钮点击逻辑
         function visitProjectWebsite() {
+ 	console.log(STATE)
             if (STATE.selectedProject && STATE.selectedProject.id === 'p4') {
                 window.location.href = 'suzhou_center_dashboard.html';
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p2') {
@@ -1659,7 +1663,10 @@ import * as THREE from 'three';
             } else if (STATE.selectedProject && STATE.selectedProject.id === 'p6') {
                  // 新增合川东隧道 p6 - 跳转到同目录下的 xiyu.html
                  window.location.href = 'xiyu.html';
-            } else {
+            }else if ( STATE.selectedProject && STATE.selectedProject.id === 'p7') {
+	 
+		 window.location.href = 'sdu-csawgk.html'; 
+	   } else {
                 window.location.href = 'https://www.google.com';
             }
         }
